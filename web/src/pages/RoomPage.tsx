@@ -1,0 +1,121 @@
+import { useState, useCallback, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { useRoomSocket } from '../hooks/useRoomSocket';
+import { useLocalRoomIdentity } from '../hooks/useLocalRoomIdentity';
+import { JoinForm } from '../components/JoinForm';
+import { TableView } from '../components/TableView';
+import { VoteDeck } from '../components/VoteDeck';
+import { RevealPanel } from '../components/RevealPanel';
+import { StatsPanel } from '../components/StatsPanel';
+import { ErrorBanner } from '../components/ErrorBanner';
+import type { RoomError, VoteValue } from '../types';
+
+export function RoomPage() {
+  const { roomId } = useParams<{ roomId: string }>();
+  const [error, setError] = useState<RoomError | null>(null);
+  const [joined, setJoined] = useState(false);
+  const [selectedVote, setSelectedVote] = useState<VoteValue | null>(null);
+  const { identity, saveIdentity } = useLocalRoomIdentity(roomId!);
+
+  const onError = useCallback((err: RoomError) => setError(err), []);
+  const { roomState, connected, join, vote, reveal, restart } = useRoomSocket({
+    roomId: roomId!,
+    onError,
+  });
+
+  // Auto-reconnect with saved identity
+  useEffect(() => {
+    if (!connected || joined || !identity) return;
+
+    join(identity.name, identity.participantId).then((ack) => {
+      if (ack.ok && ack.participantId) {
+        saveIdentity(ack.participantId, ack.canonicalName!);
+        setJoined(true);
+      }
+    });
+  }, [connected, joined, identity, join, saveIdentity]);
+
+  // Reset selected vote on new round
+  useEffect(() => {
+    if (roomState?.status === 'voting') {
+      setSelectedVote(null);
+    }
+  }, [roomState?.round, roomState?.status]);
+
+  const handleJoin = async (name: string) => {
+    const ack = await join(name, identity?.participantId);
+    if (ack.ok && ack.participantId) {
+      saveIdentity(ack.participantId, ack.canonicalName!);
+      setJoined(true);
+    } else if (ack.error) {
+      setError(ack.error);
+    }
+  };
+
+  const handleVote = (value: VoteValue) => {
+    if (!identity) return;
+    if (selectedVote === value) {
+      setSelectedVote(null);
+      vote(identity.participantId, null);
+    } else {
+      setSelectedVote(value);
+      vote(identity.participantId, value);
+    }
+  };
+
+  if (!roomId) return <div className="error-page">Invalid room URL</div>;
+
+  if (!connected) {
+    return <div className="loading">Connecting...</div>;
+  }
+
+  if (!joined) {
+    return (
+      <div className="room-page">
+        <ErrorBanner error={error} onDismiss={() => setError(null)} />
+        <JoinForm defaultName={identity?.name} onJoin={handleJoin} />
+      </div>
+    );
+  }
+
+  if (!roomState) {
+    return <div className="loading">Loading room...</div>;
+  }
+
+  const isRevealed = roomState.status === 'revealed';
+
+  return (
+    <div className="room-page">
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
+
+      <div className="room-header">
+        <h2>Round {roomState.round}</h2>
+        <span className="participant-count">
+          {roomState.participants.length} participant{roomState.participants.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <TableView
+        participants={roomState.participants}
+        roomStatus={roomState.status}
+        currentParticipantId={identity?.participantId ?? null}
+      />
+
+      {!isRevealed && (
+        <VoteDeck
+          selectedVote={selectedVote}
+          onVote={handleVote}
+        />
+      )}
+
+      <RevealPanel
+        onReveal={reveal}
+        onRestart={restart}
+        isRevealed={isRevealed}
+        hasParticipants={roomState.participants.length > 0}
+      />
+
+      {isRevealed && roomState.stats && <StatsPanel stats={roomState.stats} />}
+    </div>
+  );
+}

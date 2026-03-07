@@ -34,7 +34,7 @@ npm run dev:server
 npm run dev:web
 ```
 
-Open http://localhost:5173 (or whatever `VITE_PORT` is set to)
+Open [http://localhost:5173](http://localhost:5173) (or whatever `VITE_PORT` is set to)
 
 ## Production Build
 
@@ -43,7 +43,7 @@ npm run build
 npm start
 ```
 
-The server runs on port 3000 and serves the frontend.
+The server runs on the defined port (default 3000) and serves the frontend.
 
 ## Tests
 
@@ -67,6 +67,7 @@ docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 planning-
 
 ## Environment Variables
 
+
 | Variable                    | Default                  | Description                      |
 | --------------------------- | ------------------------ | -------------------------------- |
 | `NODE_ENV`                  | `development`            | Environment                      |
@@ -76,6 +77,7 @@ docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 planning-
 | `REDIS_URL`                 | `redis://localhost:6379` | Redis connection URL             |
 | `ROOM_TTL_SECONDS`          | `86400`                  | Room expiry (24h)                |
 | `MAX_PARTICIPANTS_PER_ROOM` | `30`                     | Max users per room               |
+
 
 ## Architecture
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useRoomSocket } from '../hooks/useRoomSocket';
 import { useLocalRoomIdentity } from '../hooks/useLocalRoomIdentity';
@@ -15,7 +15,8 @@ export function RoomPage() {
   const [error, setError] = useState<RoomError | null>(null);
   const [joined, setJoined] = useState(false);
   const [selectedVote, setSelectedVote] = useState<VoteValue | null>(null);
-  const { identity, saveIdentity } = useLocalRoomIdentity(roomId!);
+  const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId!);
+  const lastRoundRef = useRef<number | null>(null);
 
   const onError = useCallback((err: RoomError) => setError(err), []);
   const { roomState, connected, join, vote, reveal, restart } = useRoomSocket({
@@ -31,16 +32,32 @@ export function RoomPage() {
       if (ack.ok && ack.participantId) {
         saveIdentity(ack.participantId, ack.canonicalName!);
         setJoined(true);
+
+        // Restore vote from localStorage if it matches the current round
+        const room = ack.room;
+        if (
+          room &&
+          room.status === 'voting' &&
+          identity.round === room.round &&
+          identity.vote
+        ) {
+          setSelectedVote(identity.vote);
+        }
       }
     });
   }, [connected, joined, identity, join, saveIdentity]);
 
-  // Reset selected vote on new round
+  // Clear selected vote when the round changes (restart)
   useEffect(() => {
-    if (roomState?.status === 'voting') {
+    if (!roomState) return;
+
+    if (lastRoundRef.current !== null && roomState.round !== lastRoundRef.current) {
       setSelectedVote(null);
+      saveVote(null, roomState.round);
     }
-  }, [roomState?.round, roomState?.status]);
+
+    lastRoundRef.current = roomState.round;
+  }, [roomState?.round, roomState, saveVote]);
 
   const handleJoin = async (name: string) => {
     const ack = await join(name, identity?.participantId);
@@ -53,12 +70,14 @@ export function RoomPage() {
   };
 
   const handleVote = (value: VoteValue) => {
-    if (!identity) return;
+    if (!identity || !roomState) return;
     if (selectedVote === value) {
       setSelectedVote(null);
+      saveVote(null, roomState.round);
       vote(identity.participantId, null);
     } else {
       setSelectedVote(value);
+      saveVote(value, roomState.round);
       vote(identity.participantId, value);
     }
   };

@@ -32,4 +32,6 @@ export interface RoomError {
 export interface LocalIdentity {
   participantId: string;
   name: string;
+  vote?: VoteValue | null;
+  round?: number;
 }

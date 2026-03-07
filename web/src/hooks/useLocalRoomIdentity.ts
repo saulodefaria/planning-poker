@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { LocalIdentity } from '../types';
+import type { LocalIdentity, VoteValue } from '../types';
 
 function storageKey(roomId: string): string {
   return `planning-poker:room:${roomId}:identity`;
@@ -15,13 +15,27 @@ export function useLocalRoomIdentity(roomId: string) {
     }
   });
 
-  const saveIdentity = useCallback(
-    (id: string, name: string) => {
-      const value: LocalIdentity = { participantId: id, name };
+  const persist = useCallback(
+    (value: LocalIdentity) => {
       localStorage.setItem(storageKey(roomId), JSON.stringify(value));
       setIdentityState(value);
     },
     [roomId],
+  );
+
+  const saveIdentity = useCallback(
+    (id: string, name: string) => {
+      persist({ ...identity, participantId: id, name });
+    },
+    [identity, persist],
+  );
+
+  const saveVote = useCallback(
+    (vote: VoteValue | null, round: number) => {
+      if (!identity) return;
+      persist({ ...identity, vote, round });
+    },
+    [identity, persist],
   );
 
   const clearIdentity = useCallback(() => {
@@ -29,5 +43,5 @@ export function useLocalRoomIdentity(roomId: string) {
     setIdentityState(null);
   }, [roomId]);
 
-  return { identity, saveIdentity, clearIdentity };
+  return { identity, saveIdentity, saveVote, clearIdentity };
 }

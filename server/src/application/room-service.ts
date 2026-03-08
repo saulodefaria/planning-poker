@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
-import type { RoomRepository } from '../infrastructure/room-repository.js';
-import type { Config } from '../config/env.js';
-import type { Room, SerializedRoom, VoteValue } from '../domain/types.js';
+import { v4 as uuidv4 } from "uuid";
+import type { RoomRepository } from "../infrastructure/room-repository.js";
+import type { Config } from "../config/env.js";
+import type { Room, SerializedRoom, VoteValue } from "../domain/types.js";
 import {
   createRoom,
   createParticipant,
@@ -13,8 +13,8 @@ import {
   revealVotes,
   restartRoom,
   serializeRoom,
-} from '../domain/room.js';
-import { AppError } from '../domain/errors.js';
+} from "../domain/room.js";
+import { AppError } from "../domain/errors.js";
 
 export interface JoinResult {
   participantId: string;
@@ -28,12 +28,13 @@ export class RoomService {
     private readonly config: Config,
   ) {}
 
-  async create(): Promise<{ roomId: string }> {
+  async create(name: string): Promise<{ roomId: string; roomName: string }> {
     const roomId = uuidv4();
-    const room = createRoom(roomId);
+    const validatedName = validateName(name, this.config.maxNameLength);
+    const room = createRoom(roomId, validatedName);
     await this.repo.create(room, this.config.roomTtlSeconds);
-    console.log(`[Room] Created: ${roomId}`);
-    return { roomId };
+    console.log(`[Room] Created: ${roomId} (${validatedName})`);
+    return { roomId, roomName: validatedName };
   }
 
   async get(roomId: string): Promise<SerializedRoom> {
@@ -63,7 +64,7 @@ export class RoomService {
 
     // Check capacity
     if (room.participants.length >= this.config.maxParticipantsPerRoom) {
-      throw new AppError('ROOM_FULL', 'Room is full');
+      throw new AppError("ROOM_FULL", "Room is full");
     }
 
     // Deduplicate name
@@ -121,7 +122,7 @@ export class RoomService {
   private async getRoom(roomId: string): Promise<Room> {
     const room = await this.repo.get(roomId);
     if (!room) {
-      throw new AppError('ROOM_NOT_FOUND', 'Room not found');
+      throw new AppError("ROOM_NOT_FOUND", "Room not found");
     }
     return room;
   }

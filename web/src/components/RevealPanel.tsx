@@ -9,13 +9,19 @@ export function RevealPanel({ onReveal, onRestart, isRevealed, hasParticipants }
   if (!hasParticipants) return null;
 
   return (
-    <div className="reveal-panel">
+    <div className="flex justify-center mb-6">
       {!isRevealed ? (
-        <button className="btn-reveal" onClick={onReveal}>
+        <button
+          className="px-8 py-3 text-base font-semibold bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors cursor-pointer"
+          onClick={onReveal}
+        >
           Reveal Votes
         </button>
       ) : (
-        <button className="btn-restart" onClick={onRestart}>
+        <button
+          className="px-8 py-3 text-base font-semibold bg-violet-400 hover:bg-violet-500 text-white rounded-lg transition-colors cursor-pointer"
+          onClick={onRestart}
+        >
           Start New Round
         </button>
       )}

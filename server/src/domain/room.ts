@@ -1,17 +1,22 @@
-import type { Room, Participant, VoteValue, RoomStats, SerializedRoom, SerializedParticipant } from './types.js';
-import { VOTE_DECK, NUMERIC_VOTES } from './types.js';
-import { AppError } from './errors.js';
+import type { Room, Participant, VoteValue, RoomStats, SerializedRoom, SerializedParticipant } from "./types.js";
+import { VOTE_DECK, NUMERIC_VOTES } from "./types.js";
+import { AppError } from "./errors.js";
 
-export function createRoom(id: string): Room {
+export function createRoom(id: string, name: string): Room {
   const now = new Date().toISOString();
   return {
     id,
-    status: 'voting',
+    name,
+    status: "voting",
     round: 1,
     createdAt: now,
     updatedAt: now,
     participants: [],
   };
+}
+
+export function buildRoomPath(roomId: string): string {
+  return `/room/${roomId}`;
 }
 
 export function createParticipant(id: string, name: string): Participant {
@@ -40,29 +45,29 @@ export function deduplicateName(name: string, existingNames: string[], ownName?:
 export function validateName(name: string, maxLength: number): string {
   const trimmed = name.trim();
   if (trimmed.length === 0) {
-    throw new AppError('INVALID_NAME', 'Name cannot be empty');
+    throw new AppError("INVALID_NAME", "Name cannot be empty");
   }
   if (trimmed.length > maxLength) {
-    throw new AppError('INVALID_NAME', `Name cannot exceed ${maxLength} characters`);
+    throw new AppError("INVALID_NAME", `Name cannot exceed ${maxLength} characters`);
   }
   return trimmed;
 }
 
 export function validateVote(vote: string): VoteValue {
   if (!VOTE_DECK.includes(vote as VoteValue)) {
-    throw new AppError('INVALID_VOTE', `Invalid vote value: ${vote}`);
+    throw new AppError("INVALID_VOTE", `Invalid vote value: ${vote}`);
   }
   return vote as VoteValue;
 }
 
 export function setVote(room: Room, participantId: string, vote: VoteValue): Room {
-  if (room.status !== 'voting') {
-    throw new AppError('INVALID_STATE', 'Cannot vote after reveal');
+  if (room.status !== "voting") {
+    throw new AppError("INVALID_STATE", "Cannot vote after reveal");
   }
 
   const participant = room.participants.find((p) => p.id === participantId);
   if (!participant) {
-    throw new AppError('PARTICIPANT_NOT_FOUND', 'Participant not found in room');
+    throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found in room");
   }
 
   participant.vote = vote;
@@ -73,13 +78,13 @@ export function setVote(room: Room, participantId: string, vote: VoteValue): Roo
 }
 
 export function clearVote(room: Room, participantId: string): Room {
-  if (room.status !== 'voting') {
-    throw new AppError('INVALID_STATE', 'Cannot change vote after reveal');
+  if (room.status !== "voting") {
+    throw new AppError("INVALID_STATE", "Cannot change vote after reveal");
   }
 
   const participant = room.participants.find((p) => p.id === participantId);
   if (!participant) {
-    throw new AppError('PARTICIPANT_NOT_FOUND', 'Participant not found in room');
+    throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found in room");
   }
 
   participant.vote = null;
@@ -90,19 +95,19 @@ export function clearVote(room: Room, participantId: string): Room {
 }
 
 export function revealVotes(room: Room): Room {
-  if (room.status !== 'voting') {
-    throw new AppError('INVALID_STATE', 'Room is already revealed');
+  if (room.status !== "voting") {
+    throw new AppError("INVALID_STATE", "Room is already revealed");
   }
-  room.status = 'revealed';
+  room.status = "revealed";
   room.updatedAt = new Date().toISOString();
   return room;
 }
 
 export function restartRoom(room: Room): Room {
-  if (room.status !== 'revealed') {
-    throw new AppError('INVALID_STATE', 'Can only restart after reveal');
+  if (room.status !== "revealed") {
+    throw new AppError("INVALID_STATE", "Can only restart after reveal");
   }
-  room.status = 'voting';
+  room.status = "voting";
   room.round += 1;
   for (const p of room.participants) {
     p.vote = null;
@@ -127,9 +132,7 @@ export function calculateStats(room: Room): RoomStats {
     .sort((a, b) => deckOrder.indexOf(a[0]) - deckOrder.indexOf(b[0]))
     .map(([vote, count]) => ({ vote, count }));
 
-  const numericVotes = votes
-    .filter((p) => p.vote !== '?')
-    .map((p) => Number(p.vote));
+  const numericVotes = votes.filter((p) => p.vote !== "?").map((p) => Number(p.vote));
 
   if (numericVotes.length === 0) {
     return { average: null, nearestFibonacci: null, groupedVotes };
@@ -162,7 +165,7 @@ export function findNearestFibonacci(value: number): number {
 }
 
 export function serializeRoom(room: Room): SerializedRoom {
-  const isVoting = room.status === 'voting';
+  const isVoting = room.status === "voting";
 
   const participants: SerializedParticipant[] = room.participants.map((p) => ({
     id: p.id,
@@ -173,6 +176,7 @@ export function serializeRoom(room: Room): SerializedRoom {
 
   return {
     id: room.id,
+    name: room.name,
     status: room.status,
     round: room.round,
     participants,

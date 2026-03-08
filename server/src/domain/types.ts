@@ -1,9 +1,9 @@
-export const VOTE_DECK = ['?', '1', '2', '3', '5', '8', '13', '21', '34', '55', '89'] as const;
+export const VOTE_DECK = ["?", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89"] as const;
 export type VoteValue = (typeof VOTE_DECK)[number];
 
 export const NUMERIC_VOTES = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89] as const;
 
-export type RoomStatus = 'voting' | 'revealed';
+export type RoomStatus = "voting" | "revealed";
 
 export interface Participant {
   id: string;
@@ -16,6 +16,7 @@ export interface Participant {
 
 export interface Room {
   id: string;
+  name: string;
   status: RoomStatus;
   round: number;
   createdAt: string;
@@ -38,6 +39,7 @@ export interface SerializedParticipant {
 
 export interface SerializedRoom {
   id: string;
+  name: string;
   status: RoomStatus;
   round: number;
   participants: SerializedParticipant[];

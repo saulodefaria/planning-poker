@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 interface Props {
   onComplete: () => void;
@@ -6,10 +6,10 @@ interface Props {
 
 export function Countdown({ onComplete }: Props) {
   const [count, setCount] = useState(3);
-  const [animClass, setAnimClass] = useState('countdown-enter');
+  const [animClass, setAnimClass] = useState("countdown-enter");
 
   const tick = useCallback(() => {
-    setAnimClass('countdown-exit');
+    setAnimClass("countdown-exit");
 
     setTimeout(() => {
       setCount((prev) => {
@@ -18,7 +18,7 @@ export function Countdown({ onComplete }: Props) {
           onComplete();
           return 0;
         }
-        setAnimClass('countdown-enter');
+        setAnimClass("countdown-enter");
         return next;
       });
     }, 300);
@@ -32,11 +32,5 @@ export function Countdown({ onComplete }: Props) {
 
   if (count <= 0) return null;
 
-  return (
-    <span
-      className={`text-6xl sm:text-7xl font-black text-white drop-shadow-lg ${animClass}`}
-    >
-      {count}
-    </span>
-  );
+  return <span className={`text-6xl sm:text-7xl font-black text-white drop-shadow-lg ${animClass}`}>{count}</span>;
 }

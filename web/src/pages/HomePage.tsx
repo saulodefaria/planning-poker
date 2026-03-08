@@ -1,34 +1,84 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { SiteHeader } from "../components/SiteHeader";
 
 export function HomePage() {
   const navigate = useNavigate();
+  const [roomName, setRoomName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const createRoom = async () => {
+  const createRoom = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedName = roomName.trim();
+    if (!trimmedName) return;
+
     setLoading(true);
+    setError(null);
+
     try {
-      const res = await fetch('/api/rooms', { method: 'POST' });
-      const data = await res.json();
+      const res = await fetch("/api/rooms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.message ?? "Failed to create room.");
+        return;
+      }
+
       navigate(data.roomUrl);
     } catch {
-      alert('Failed to create room. Is the server running?');
+      setError("Failed to create room. Is the server running?");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
-      <h1 className="text-4xl sm:text-5xl font-bold text-white">Planning Poker</h1>
-      <p className="text-slate-400 text-lg">Estimate stories with your team in real time.</p>
-      <button
-        className="mt-4 px-10 py-3.5 text-lg font-semibold bg-blue-500 hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg transition-colors cursor-pointer"
-        onClick={createRoom}
-        disabled={loading}
-      >
-        {loading ? 'Creating...' : 'Create Room'}
-      </button>
+    <div className="min-h-screen">
+      <SiteHeader />
+
+      <main className="mx-auto flex min-h-[calc(100vh-81px)] max-w-3xl flex-col items-center justify-center gap-6 px-4 text-center">
+        <div className="space-y-3">
+          <h1 className="text-4xl font-bold text-white sm:text-5xl">Estimate stories in real time</h1>
+          <p className="text-lg text-slate-400">Name the room once, share the link, and let the team vote live.</p>
+        </div>
+
+        <form
+          onSubmit={createRoom}
+          className="w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900/70 p-5 text-left shadow-2xl shadow-slate-950/20">
+          <label htmlFor="room-name" className="mb-2 block text-sm font-medium text-slate-200">
+            Room name
+          </label>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              id="room-name"
+              type="text"
+              value={roomName}
+              onChange={(event) => setRoomName(event.target.value)}
+              placeholder="Sprint 42 backlog refinement"
+              maxLength={30}
+              autoFocus
+              disabled={loading}
+              className="flex-1 rounded-xl border border-border bg-surface px-4 py-3 text-base text-slate-100 outline-none transition-colors focus:border-blue-500"
+            />
+            <button
+              type="submit"
+              disabled={loading || !roomName.trim()}
+              className="rounded-xl bg-blue-500 px-8 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? "Creating..." : "Create room"}
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-slate-400">Rooms expire after 24 hours without activity.</p>
+          {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
+        </form>
+      </main>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import type { RoomState, RoomError, VoteValue } from '../types';
 interface UseRoomSocketOptions {
   roomId: string;
   onError?: (error: RoomError) => void;
+  onCountdown?: () => void;
 }
 
 interface JoinAck {
@@ -15,7 +16,7 @@ interface JoinAck {
   error?: RoomError;
 }
 
-export function useRoomSocket({ roomId, onError }: UseRoomSocketOptions) {
+export function useRoomSocket({ roomId, onError, onCountdown }: UseRoomSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [connected, setConnected] = useState(false);
@@ -28,12 +29,13 @@ export function useRoomSocket({ roomId, onError }: UseRoomSocketOptions) {
     socket.on('disconnect', () => setConnected(false));
     socket.on('room:state', (state: RoomState) => setRoomState(state));
     socket.on('room:error', (error: RoomError) => onError?.(error));
+    socket.on('room:countdown', () => onCountdown?.());
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [roomId, onError]);
+  }, [roomId, onError, onCountdown]);
 
   const join = useCallback(
     (name: string, participantId?: string): Promise<JoinAck> => {
@@ -63,5 +65,9 @@ export function useRoomSocket({ roomId, onError }: UseRoomSocketOptions) {
     socketRef.current?.emit('room:restart', { roomId });
   }, [roomId]);
 
-  return { roomState, connected, join, vote, reveal, restart };
+  const startCountdown = useCallback(() => {
+    socketRef.current?.emit('room:countdown', { roomId });
+  }, [roomId]);
+
+  return { roomState, connected, join, vote, reveal, restart, startCountdown };
 }

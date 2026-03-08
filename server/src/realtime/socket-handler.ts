@@ -23,6 +23,8 @@ function socketRoomName(roomId: string): string {
 }
 
 export function registerSocketHandlers(io: Server, roomService: RoomService): void {
+  const countdownTimers = new Map<string, NodeJS.Timeout>();
+
   io.on('connection', (socket: Socket) => {
     socket.on('room:join', async (payload: JoinPayload, ack?: (res: unknown) => void) => {
       try {
@@ -85,10 +87,39 @@ export function registerSocketHandlers(io: Server, roomService: RoomService): vo
       }
     });
 
+    socket.on('room:countdown', (payload: RoomActionPayload) => {
+      if (!payload.roomId) return;
+
+      // Don't start another countdown if one is already running
+      if (countdownTimers.has(payload.roomId)) return;
+
+      io.to(socketRoomName(payload.roomId)).emit('room:countdown');
+
+      // Server auto-reveals after 3s so it completes even if the initiator disconnects
+      const timer = setTimeout(async () => {
+        countdownTimers.delete(payload.roomId);
+        try {
+          const room = await roomService.reveal(payload.roomId);
+          io.to(socketRoomName(payload.roomId)).emit('room:state', room);
+        } catch {
+          // Room may already be revealed or deleted
+        }
+      }, 3000);
+
+      countdownTimers.set(payload.roomId, timer);
+    });
+
     socket.on('room:restart', async (payload: RoomActionPayload) => {
       try {
         if (!payload.roomId) {
           throw new AppError('ROOM_NOT_FOUND', 'Room ID is required');
+        }
+
+        // Cancel any pending countdown reveal
+        const pendingTimer = countdownTimers.get(payload.roomId);
+        if (pendingTimer) {
+          clearTimeout(pendingTimer);
+          countdownTimers.delete(payload.roomId);
         }
 
         const room = await roomService.restart(payload.roomId);

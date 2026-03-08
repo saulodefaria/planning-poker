@@ -19,10 +19,14 @@ export function HomePage() {
   };
 
   return (
-    <div className="home-page">
-      <h1>Planning Poker</h1>
-      <p>Estimate stories with your team in real time.</p>
-      <button className="btn-create" onClick={createRoom} disabled={loading}>
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
+      <h1 className="text-4xl sm:text-5xl font-bold text-white">Planning Poker</h1>
+      <p className="text-slate-400 text-lg">Estimate stories with your team in real time.</p>
+      <button
+        className="mt-4 px-10 py-3.5 text-lg font-semibold bg-blue-500 hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg transition-colors cursor-pointer"
+        onClick={createRoom}
+        disabled={loading}
+      >
         {loading ? 'Creating...' : 'Create Room'}
       </button>
     </div>

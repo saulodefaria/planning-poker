@@ -58,13 +58,6 @@ docker build -t planning-poker .
 docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 planning-poker
 ```
 
-## Railway Deployment
-
-1. Connect your repo to Railway
-2. Add a Redis service
-3. Set `REDIS_URL` env var (Railway provides this automatically when linking Redis)
-4. Deploy — Railway auto-detects the Dockerfile
-
 ## Environment Variables
 
 

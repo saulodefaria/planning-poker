@@ -20,7 +20,7 @@ npm install
 docker compose up -d
 ```
 
-Redis is exposed on port `7984` by default (configurable via `REDIS_PORT` in `.env`).
+Redis is exposed on port `6379` by default (configurable via `REDIS_PORT` in `.env`).
 
 ## Development
 

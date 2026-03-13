@@ -12,7 +12,7 @@ import {
   shouldAttemptAutoJoin,
   type JoinStatus,
 } from "../services/room-page-state";
-import type { RoomError, RoomState, VoteValue } from "../types";
+import type { PaperBallThrowEvent, RoomError, RoomState, VoteValue } from "../types";
 
 export function useRoomPageState(roomId: string) {
   const [error, setError] = useState<RoomError | null>(null);
@@ -20,6 +20,7 @@ export function useRoomPageState(roomId: string) {
   const [joinStatus, setJoinStatus] = useState<JoinStatus>(() => getInitialJoinStatus(loadRoomIdentity(roomId)));
   const [selectedVote, setSelectedVote] = useState<VoteValue | null>(null);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [activeThrows, setActiveThrows] = useState<PaperBallThrowEvent[]>([]);
   const lastRoundRef = useRef<number | null>(null);
   const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId);
 
@@ -35,11 +36,31 @@ export function useRoomPageState(roomId: string) {
     setShowCountdown(true);
   }, []);
 
-  const { roomState, connected, join, vote, restart, startCountdown, addTicket, removeTicket, setCurrentTicket } =
+  const handlePaperBallThrown = useCallback((event: PaperBallThrowEvent) => {
+    setActiveThrows((currentThrows) => [...currentThrows, event]);
+
+    window.setTimeout(() => {
+      setActiveThrows((currentThrows) => currentThrows.filter((paperBallThrow) => paperBallThrow.id !== event.id));
+    }, 1700);
+  }, []);
+
+  const {
+    roomState,
+    connected,
+    join,
+    vote,
+    restart,
+    startCountdown,
+    throwPaperBall,
+    addTicket,
+    removeTicket,
+    setCurrentTicket,
+  } =
     useRoomSocket({
       roomId,
       onError: handleSocketError,
       onCountdown: handleCountdown,
+      onPaperBallThrown: handlePaperBallThrown,
     });
 
   useEffect(() => {
@@ -50,6 +71,7 @@ export function useRoomPageState(roomId: string) {
     setJoinStatus(getInitialJoinStatus(savedIdentity));
     setSelectedVote(null);
     setShowCountdown(false);
+    setActiveThrows([]);
     lastRoundRef.current = null;
   }, [roomId]);
 
@@ -219,6 +241,23 @@ export function useRoomPageState(roomId: string) {
     setShowCountdown(false);
   }, []);
 
+  const handleThrowPaperBall = useCallback(
+    (targetParticipantId: string) => {
+      if (!identity || !roomState) {
+        return;
+      }
+
+      const targetParticipant = roomState.participants.find((participant) => participant.id === targetParticipantId);
+
+      if (!targetParticipant || targetParticipant.id === identity.participantId) {
+        return;
+      }
+
+      throwPaperBall(identity.participantId, targetParticipantId);
+    },
+    [identity, roomState, throwPaperBall],
+  );
+
   const activeRoom = roomState ?? roomPreview;
   const pageStage = getRoomPageStage({
     activeRoom,
@@ -233,6 +272,7 @@ export function useRoomPageState(roomId: string) {
 
   return {
     activeRoom,
+    activeThrows,
     addTicket,
     clearError: () => setError(null),
     connected,
@@ -241,6 +281,7 @@ export function useRoomPageState(roomId: string) {
     handleCountdownComplete,
     handleJoin,
     handleReveal,
+    handleThrowPaperBall,
     handleVote,
     identity,
     joinStatus,

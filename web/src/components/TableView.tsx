@@ -1,15 +1,24 @@
 import type { ReactNode } from 'react';
-import type { Participant, RoomStatus } from '../types';
+import type { PaperBallThrowEvent, Participant, RoomStatus } from '../types';
 import { ParticipantSeat } from './ParticipantSeat';
 
 interface Props {
   participants: Participant[];
   roomStatus: RoomStatus;
   currentParticipantId: string | null;
+  activeThrows: PaperBallThrowEvent[];
+  onThrowPaperBall: (targetParticipantId: string) => void;
   children?: ReactNode;
 }
 
-export function TableView({ participants, roomStatus, currentParticipantId, children }: Props) {
+export function TableView({
+  participants,
+  roomStatus,
+  currentParticipantId,
+  activeThrows,
+  onThrowPaperBall,
+  children,
+}: Props) {
   const count = participants.length;
 
   // Split participants into top and bottom halves around the table
@@ -25,6 +34,9 @@ export function TableView({ participants, roomStatus, currentParticipantId, chil
         participant={p}
         roomStatus={roomStatus}
         isCurrentUser={p.id === currentParticipantId}
+        currentParticipantId={currentParticipantId}
+        activeThrows={activeThrows}
+        onThrowPaperBall={onThrowPaperBall}
       />
     ));
 

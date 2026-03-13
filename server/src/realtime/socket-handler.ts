@@ -33,6 +33,12 @@ interface TicketSetCurrentPayload {
   key: string | null;
 }
 
+interface PaperBallThrowPayload {
+  roomId: string;
+  fromParticipantId: string;
+  toParticipantId: string;
+}
+
 function socketRoomName(roomId: string): string {
   return `room:${roomId}`;
 }
@@ -139,6 +145,34 @@ export function registerSocketHandlers(io: Server, roomService: RoomService): vo
 
         const room = await roomService.restart(payload.roomId);
         io.to(socketRoomName(payload.roomId)).emit('room:state', room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+
+    socket.on('room:throw-paper-ball', async (payload: PaperBallThrowPayload) => {
+      try {
+        if (!payload.roomId || !payload.fromParticipantId || !payload.toParticipantId) {
+          throw new AppError('INVALID_STATE', 'Missing throw payload fields');
+        }
+
+        const room = await roomService.get(payload.roomId);
+        const fromExists = room.participants.some((participant) => participant.id === payload.fromParticipantId);
+        const toExists = room.participants.some((participant) => participant.id === payload.toParticipantId);
+
+        if (!fromExists || !toExists || payload.fromParticipantId === payload.toParticipantId) {
+          throw new AppError('INVALID_STATE', 'Invalid throw target');
+        }
+
+        io.to(socketRoomName(payload.roomId)).emit('room:paper-ball-thrown', {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          roomId: payload.roomId,
+          fromParticipantId: payload.fromParticipantId,
+          toParticipantId: payload.toParticipantId,
+          side: Math.random() > 0.5 ? 'left' : 'right',
+          createdAt: new Date().toISOString(),
+        });
       } catch (err) {
         emitError(socket, err);
       }

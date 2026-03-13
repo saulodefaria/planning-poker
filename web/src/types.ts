@@ -53,6 +53,17 @@ export interface RoomError {
   message: string;
 }
 
+export type ThrowSide = 'left' | 'right';
+
+export interface PaperBallThrowEvent {
+  id: string;
+  roomId: string;
+  fromParticipantId: string;
+  toParticipantId: string;
+  side: ThrowSide;
+  createdAt: string;
+}
+
 export interface LocalIdentity {
   participantId: string;
   name: string;

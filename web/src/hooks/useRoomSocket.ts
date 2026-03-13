@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import type { RoomState, RoomError, VoteValue } from "../types";
+import type { PaperBallThrowEvent, RoomState, RoomError, VoteValue } from "../types";
 
 interface UseRoomSocketOptions {
   roomId: string;
   onError?: (error: RoomError) => void;
   onCountdown?: () => void;
+  onPaperBallThrown?: (event: PaperBallThrowEvent) => void;
 }
 
 export interface JoinAck {
@@ -16,17 +17,19 @@ export interface JoinAck {
   error?: RoomError;
 }
 
-export function useRoomSocket({ roomId, onError, onCountdown }: UseRoomSocketOptions) {
+export function useRoomSocket({ roomId, onError, onCountdown, onPaperBallThrown }: UseRoomSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
   const onErrorRef = useRef(onError);
   const onCountdownRef = useRef(onCountdown);
+  const onPaperBallThrownRef = useRef(onPaperBallThrown);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     onErrorRef.current = onError;
     onCountdownRef.current = onCountdown;
-  }, [onCountdown, onError]);
+    onPaperBallThrownRef.current = onPaperBallThrown;
+  }, [onCountdown, onError, onPaperBallThrown]);
 
   useEffect(() => {
     setRoomState(null);
@@ -40,6 +43,7 @@ export function useRoomSocket({ roomId, onError, onCountdown }: UseRoomSocketOpt
     socket.on("room:state", (state: RoomState) => setRoomState(state));
     socket.on("room:error", (error: RoomError) => onErrorRef.current?.(error));
     socket.on("room:countdown", () => onCountdownRef.current?.());
+    socket.on("room:paper-ball-thrown", (event: PaperBallThrowEvent) => onPaperBallThrownRef.current?.(event));
 
     return () => {
       socket.disconnect();
@@ -91,6 +95,13 @@ export function useRoomSocket({ roomId, onError, onCountdown }: UseRoomSocketOpt
     socketRef.current?.emit("room:countdown", { roomId });
   }, [roomId]);
 
+  const throwPaperBall = useCallback(
+    (fromParticipantId: string, toParticipantId: string) => {
+      socketRef.current?.emit("room:throw-paper-ball", { roomId, fromParticipantId, toParticipantId });
+    },
+    [roomId],
+  );
+
   const addTicket = useCallback(
     (url: string) => {
       socketRef.current?.emit("ticket:add", { roomId, url });
@@ -112,5 +123,17 @@ export function useRoomSocket({ roomId, onError, onCountdown }: UseRoomSocketOpt
     [roomId],
   );
 
-  return { roomState, connected, join, vote, reveal, restart, startCountdown, addTicket, removeTicket, setCurrentTicket };
+  return {
+    roomState,
+    connected,
+    join,
+    vote,
+    reveal,
+    restart,
+    startCountdown,
+    throwPaperBall,
+    addTicket,
+    removeTicket,
+    setCurrentTicket,
+  };
 }

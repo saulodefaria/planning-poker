@@ -130,6 +130,39 @@ describe("RoomService", () => {
     expect(room.stats).not.toBeNull();
   });
 
+  it("allows changing a revealed vote and updates the current round history", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+    const alice = await service.join(roomId, "Alice");
+    const bob = await service.join(roomId, "Bob");
+    await service.addTicket(roomId, "https://example.atlassian.net/browse/PROJ-123");
+    await service.addTicket(roomId, "https://example.atlassian.net/browse/PROJ-456");
+    await service.vote(roomId, alice.participantId, "5");
+    await service.vote(roomId, bob.participantId, "8");
+    await service.reveal(roomId);
+
+    const updated = await service.vote(roomId, alice.participantId, "13");
+
+    expect(updated.status).toBe("revealed");
+    expect(updated.currentTicketKey).toBe("PROJ-123");
+    expect(updated.participants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: alice.participantId, vote: "13" }),
+        expect.objectContaining({ id: bob.participantId, vote: "8" }),
+      ]),
+    );
+    expect(updated.stats?.average).toBe(10.5);
+    expect(updated.voteHistory).toEqual([
+      expect.objectContaining({
+        ticketKey: "PROJ-123",
+        round: 1,
+        votes: [
+          { participantName: "Alice", vote: "13" },
+          { participantName: "Bob", vote: "8" },
+        ],
+      }),
+    ]);
+  });
+
   it("restarts round", async () => {
     const { roomId } = await service.create(ROOM_NAME);
     const { participantId } = await service.join(roomId, "Alice");
@@ -141,6 +174,29 @@ describe("RoomService", () => {
     expect(room.round).toBe(2);
     expect(room.participants[0].hasVoted).toBe(false);
     expect(room.participants[0].vote).toBeNull();
+  });
+
+  it("does not let a new round overwrite the previous round history", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+    const { participantId } = await service.join(roomId, "Alice");
+    await service.addTicket(roomId, "https://example.atlassian.net/browse/PROJ-123");
+    await service.addTicket(roomId, "https://example.atlassian.net/browse/PROJ-456");
+    await service.vote(roomId, participantId, "5");
+    await service.reveal(roomId);
+    await service.restart(roomId);
+
+    const newRound = await service.vote(roomId, participantId, "8");
+
+    expect(newRound.status).toBe("voting");
+    expect(newRound.round).toBe(2);
+    expect(newRound.currentTicketKey).toBe("PROJ-456");
+    expect(newRound.voteHistory).toEqual([
+      expect.objectContaining({
+        ticketKey: "PROJ-123",
+        round: 1,
+        votes: [{ participantName: "Alice", vote: "5" }],
+      }),
+    ]);
   });
 
   it("enforces max participants", async () => {

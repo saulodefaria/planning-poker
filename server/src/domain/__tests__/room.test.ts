@@ -12,12 +12,23 @@ import {
   calculateStats,
   findNearestFibonacci,
   serializeRoom,
+  setCurrentTicket,
+  removeTicket,
 } from "../room.js";
 import { AppError } from "../errors.js";
 import type { Room } from "../types.js";
 
 function createTestRoom(): Room {
   return createRoom("r1", "Sprint Planning");
+}
+
+function addCurrentTicket(room: Room, key = "PROJ-123") {
+  room.tickets.push({
+    key,
+    url: `https://example.atlassian.net/browse/${key}`,
+    addedAt: new Date().toISOString(),
+  });
+  room.currentTicketKey = key;
 }
 
 describe("deduplicateName", () => {
@@ -87,17 +98,37 @@ describe("setVote", () => {
     expect(room.participants[0].vote).toBe("8");
   });
 
-  it("throws if room is revealed", () => {
-    const room = createTestRoom();
-    room.status = "revealed";
-    room.participants.push(createParticipant("p1", "Alice"));
-
-    expect(() => setVote(room, "p1", "5")).toThrow(AppError);
-  });
-
   it("throws if participant not found", () => {
     const room = createTestRoom();
     expect(() => setVote(room, "unknown", "5")).toThrow(AppError);
+  });
+
+  it("updates the revealed round history when a vote changes after reveal", () => {
+    const room = createTestRoom();
+    addCurrentTicket(room);
+    room.participants.push(createParticipant("p1", "Alice"));
+    room.participants.push(createParticipant("p2", "Bob"));
+
+    setVote(room, "p1", "5");
+    setVote(room, "p2", "8");
+    revealVotes(room);
+
+    const initialCompletedAt = room.voteHistory[0]?.completedAt;
+
+    setVote(room, "p1", "13");
+
+    expect(room.participants[0].vote).toBe("13");
+    expect(room.voteHistory).toHaveLength(1);
+    expect(room.voteHistory[0]).toMatchObject({
+      ticketKey: "PROJ-123",
+      round: 1,
+      votes: [
+        { participantName: "Alice", vote: "13" },
+        { participantName: "Bob", vote: "8" },
+      ],
+    });
+    expect(room.voteHistory[0]?.stats?.average).toBe(10.5);
+    expect(room.voteHistory[0]?.completedAt).toBe(initialCompletedAt);
   });
 });
 
@@ -123,17 +154,34 @@ describe("clearVote", () => {
     expect(room.participants[0].hasVoted).toBe(false);
   });
 
-  it("throws if room is revealed", () => {
-    const room = createTestRoom();
-    room.status = "revealed";
-    room.participants.push(createParticipant("p1", "Alice"));
-
-    expect(() => clearVote(room, "p1")).toThrow(AppError);
-  });
-
   it("throws if participant not found", () => {
     const room = createTestRoom();
     expect(() => clearVote(room, "unknown")).toThrow(AppError);
+  });
+
+  it("updates the revealed round history when a vote is cleared after reveal", () => {
+    const room = createTestRoom();
+    addCurrentTicket(room);
+    room.participants.push(createParticipant("p1", "Alice"));
+    room.participants.push(createParticipant("p2", "Bob"));
+
+    setVote(room, "p1", "5");
+    setVote(room, "p2", "8");
+    revealVotes(room);
+
+    clearVote(room, "p1");
+
+    expect(room.participants[0].vote).toBeNull();
+    expect(room.participants[0].hasVoted).toBe(false);
+    expect(room.voteHistory[0]).toMatchObject({
+      ticketKey: "PROJ-123",
+      round: 1,
+      votes: [
+        { participantName: "Alice", vote: null },
+        { participantName: "Bob", vote: "8" },
+      ],
+    });
+    expect(room.voteHistory[0]?.stats?.average).toBe(8);
   });
 });
 
@@ -148,6 +196,22 @@ describe("revealVotes", () => {
     const room = createTestRoom();
     room.status = "revealed";
     expect(() => revealVotes(room)).toThrow(AppError);
+  });
+
+  it("keeps the current ticket in place until the next round starts", () => {
+    const room = createTestRoom();
+    addCurrentTicket(room, "PROJ-123");
+    room.tickets.push({
+      key: "PROJ-456",
+      url: "https://example.atlassian.net/browse/PROJ-456",
+      addedAt: new Date().toISOString(),
+    });
+
+    revealVotes(room);
+
+    expect(room.currentTicketKey).toBe("PROJ-123");
+    expect(room.tickets.map((ticket) => ticket.key)).toEqual(["PROJ-123", "PROJ-456"]);
+    expect(room.votedTickets).toEqual([]);
   });
 });
 
@@ -166,9 +230,49 @@ describe("restartRoom", () => {
     expect(room.participants[0].hasVoted).toBe(false);
   });
 
+  it("moves the revealed ticket to history and advances to the next ticket", () => {
+    const room = createTestRoom();
+    addCurrentTicket(room, "PROJ-123");
+    room.tickets.push({
+      key: "PROJ-456",
+      url: "https://example.atlassian.net/browse/PROJ-456",
+      addedAt: new Date().toISOString(),
+    });
+    revealVotes(room);
+
+    restartRoom(room);
+
+    expect(room.currentTicketKey).toBe("PROJ-456");
+    expect(room.tickets.map((ticket) => ticket.key)).toEqual(["PROJ-456"]);
+    expect(room.votedTickets.map((ticket) => ticket.key)).toEqual(["PROJ-123"]);
+  });
+
   it("throws if not revealed", () => {
     const room = createTestRoom();
     expect(() => restartRoom(room)).toThrow(AppError);
+  });
+});
+
+describe("ticket actions after reveal", () => {
+  it("prevents changing the current ticket after reveal", () => {
+    const room = createTestRoom();
+    addCurrentTicket(room, "PROJ-123");
+    room.tickets.push({
+      key: "PROJ-456",
+      url: "https://example.atlassian.net/browse/PROJ-456",
+      addedAt: new Date().toISOString(),
+    });
+    revealVotes(room);
+
+    expect(() => setCurrentTicket(room, "PROJ-456")).toThrow(AppError);
+  });
+
+  it("prevents removing the revealed ticket before the next round", () => {
+    const room = createTestRoom();
+    addCurrentTicket(room, "PROJ-123");
+    revealVotes(room);
+
+    expect(() => removeTicket(room, "PROJ-123")).toThrow(AppError);
   });
 });
 

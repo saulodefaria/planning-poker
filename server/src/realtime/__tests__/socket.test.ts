@@ -146,6 +146,7 @@ describe("Socket.IO handlers", () => {
 
   it("reveal broadcasts revealed state", async () => {
     const { roomId } = await service.create(ROOM_NAME);
+    await service.addTicket(roomId, "https://example.atlassian.net/browse/PROJ-123");
 
     const client1 = createClient();
     await waitForConnect(client1);
@@ -181,6 +182,83 @@ describe("Socket.IO handlers", () => {
     expect(revealed.status).toBe("revealed");
     expect(revealed.participants[0].vote).toBe("5");
     expect(revealed.stats).toBeTruthy();
+  });
+
+  it("revealed vote changes are broadcast with updated history", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+    await service.addTicket(roomId, "https://example.atlassian.net/browse/PROJ-123");
+
+    const client1 = createClient();
+    const client2 = createClient();
+    await Promise.all([waitForConnect(client1), waitForConnect(client2)]);
+
+    const alice = await new Promise<any>((resolve) => {
+      client1.emit("room:join", { roomId, name: "Alice" }, resolve);
+    });
+    const bob = await new Promise<any>((resolve) => {
+      client2.emit("room:join", { roomId, name: "Bob" }, resolve);
+    });
+
+    client1.emit("vote:set", {
+      roomId,
+      participantId: alice.participantId,
+      vote: "5",
+    });
+    client2.emit("vote:set", {
+      roomId,
+      participantId: bob.participantId,
+      vote: "8",
+    });
+
+    await new Promise<void>((resolve) => {
+      client1.on("room:state", (state) => {
+        const everyoneVoted = state.participants.every((participant: any) => participant.hasVoted);
+        if (state.status === "voting" && everyoneVoted) resolve();
+      });
+    });
+    client1.removeAllListeners("room:state");
+    client2.removeAllListeners("room:state");
+
+    const revealPromise = new Promise<void>((resolve) => {
+      client1.on("room:state", (state) => {
+        if (state.status === "revealed") resolve();
+      });
+    });
+    client1.emit("room:reveal", { roomId });
+    await revealPromise;
+    client1.removeAllListeners("room:state");
+
+    const updatedStatePromise = new Promise<any>((resolve) => {
+      client2.on("room:state", (state) => {
+        const aliceState = state.participants.find((participant: any) => participant.id === alice.participantId);
+        const aliceHistory = state.voteHistory[0]?.votes.find(
+          (vote: any) => vote.participantName === "Alice",
+        );
+
+        if (state.status === "revealed" && aliceState?.vote === "13" && aliceHistory?.vote === "13") {
+          resolve(state);
+        }
+      });
+    });
+
+    client1.emit("vote:set", {
+      roomId,
+      participantId: alice.participantId,
+      vote: "13",
+    });
+
+    const updated = await updatedStatePromise;
+    expect(updated.stats?.average).toBe(10.5);
+    expect(updated.voteHistory).toEqual([
+      expect.objectContaining({
+        ticketKey: "PROJ-123",
+        round: 1,
+        votes: [
+          { participantName: "Alice", vote: "13" },
+          { participantName: "Bob", vote: "8" },
+        ],
+      }),
+    ]);
   });
 
   it("restart broadcasts reset state", async () => {

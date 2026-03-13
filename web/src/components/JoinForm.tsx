@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   defaultName?: string;
   roomName?: string;
   onJoin: (name: string) => void;
   disabled?: boolean;
+  loading?: boolean;
 }
 
-export function JoinForm({ defaultName = "", roomName, onJoin, disabled }: Props) {
+export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading }: Props) {
   const [name, setName] = useState(defaultName);
+
+  useEffect(() => {
+    setName(defaultName);
+  }, [defaultName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +42,7 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled }: Props
           type="submit"
           disabled={disabled || !name.trim()}
           className="px-6 py-2.5 text-base font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors">
-          Join
+          {loading ? "Joining..." : "Join"}
         </button>
       </form>
     </div>

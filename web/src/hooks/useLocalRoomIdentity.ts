@@ -1,48 +1,90 @@
-import { useState, useCallback } from 'react';
-import type { LocalIdentity, VoteValue } from '../types';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { clearRoomIdentity, loadRoomIdentity, saveRoomIdentity } from "../services/room-identity-storage";
+import type { LocalIdentity, VoteValue } from "../types";
 
-function storageKey(roomId: string): string {
-  return `planning-poker:room:${roomId}:identity`;
+interface IdentityState {
+  identity: LocalIdentity | null;
+  roomId: string;
 }
 
 export function useLocalRoomIdentity(roomId: string) {
-  const [identity, setIdentityState] = useState<LocalIdentity | null>(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(roomId));
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
+  const [state, setState] = useState<IdentityState>(() => ({
+    roomId,
+    identity: loadRoomIdentity(roomId),
+  }));
+
+  const identity = useMemo(
+    () => (state.roomId === roomId ? state.identity : loadRoomIdentity(roomId)),
+    [roomId, state.identity, state.roomId],
+  );
+
+  useEffect(() => {
+    if (state.roomId === roomId) {
+      return;
     }
-  });
+
+    setState({
+      roomId,
+      identity,
+    });
+  }, [identity, roomId, state.roomId]);
 
   const persist = useCallback(
-    (value: LocalIdentity) => {
-      localStorage.setItem(storageKey(roomId), JSON.stringify(value));
-      setIdentityState(value);
+    (updater: (current: LocalIdentity | null) => LocalIdentity | null) => {
+      setState((currentState) => {
+        const currentIdentity = currentState.roomId === roomId ? currentState.identity : loadRoomIdentity(roomId);
+        const nextIdentity = updater(currentIdentity);
+
+        if (nextIdentity) {
+          saveRoomIdentity(roomId, nextIdentity);
+        } else {
+          clearRoomIdentity(roomId);
+        }
+
+        return {
+          roomId,
+          identity: nextIdentity,
+        };
+      });
     },
     [roomId],
   );
 
   const saveIdentity = useCallback(
     (id: string, name: string) => {
-      persist({ ...identity, participantId: id, name });
+      persist((current) => ({
+        ...current,
+        participantId: id,
+        name,
+      }));
     },
-    [identity, persist],
+    [persist],
   );
 
   const saveVote = useCallback(
     (vote: VoteValue | null, round: number) => {
-      if (!identity) return;
-      if (identity.vote === vote && identity.round === round) return;
-      persist({ ...identity, vote, round });
+      persist((current) => {
+        if (!current) {
+          return current;
+        }
+
+        if (current.vote === vote && current.round === round) {
+          return current;
+        }
+
+        return {
+          ...current,
+          vote,
+          round,
+        };
+      });
     },
-    [identity, persist],
+    [persist],
   );
 
   const clearIdentity = useCallback(() => {
-    localStorage.removeItem(storageKey(roomId));
-    setIdentityState(null);
-  }, [roomId]);
+    persist(() => null);
+  }, [persist]);
 
   return { identity, saveIdentity, saveVote, clearIdentity };
 }

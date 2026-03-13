@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SiteHeader } from "../components/SiteHeader";
+import { createRoom, toRoomError } from "../services/room-api";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createRoom = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedName = roomName.trim();
@@ -18,23 +19,10 @@ export function HomePage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/rooms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: trimmedName }),
-      });
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setError(data?.message ?? "Failed to create room.");
-        return;
-      }
-
+      const data = await createRoom(trimmedName);
       navigate(data.roomUrl);
-    } catch {
-      setError("Failed to create room. Is the server running?");
+    } catch (err) {
+      setError(toRoomError(err, "Failed to create room. Is the server running?").message);
     } finally {
       setLoading(false);
     }
@@ -51,7 +39,7 @@ export function HomePage() {
         </div>
 
         <form
-          onSubmit={createRoom}
+          onSubmit={handleCreateRoom}
           className="w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900/70 p-5 text-left shadow-2xl shadow-slate-950/20">
           <label htmlFor="room-name" className="mb-2 block text-sm font-medium text-slate-200">
             Room name

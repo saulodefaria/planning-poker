@@ -86,6 +86,7 @@ server/src/
 web/src/
   components/   # React UI components
   hooks/        # useRoomSocket, useLocalRoomIdentity
+  services/     # REST calls, local persistence, page-state helpers
   pages/        # HomePage, RoomPage
 ```
 

@@ -69,5 +69,26 @@ export function useRoomSocket({ roomId, onError, onCountdown }: UseRoomSocketOpt
     socketRef.current?.emit('room:countdown', { roomId });
   }, [roomId]);
 
-  return { roomState, connected, join, vote, reveal, restart, startCountdown };
+  const addTicket = useCallback(
+    (url: string) => {
+      socketRef.current?.emit('ticket:add', { roomId, url });
+    },
+    [roomId],
+  );
+
+  const removeTicket = useCallback(
+    (key: string) => {
+      socketRef.current?.emit('ticket:remove', { roomId, key });
+    },
+    [roomId],
+  );
+
+  const setCurrentTicket = useCallback(
+    (key: string | null) => {
+      socketRef.current?.emit('ticket:set-current', { roomId, key });
+    },
+    [roomId],
+  );
+
+  return { roomState, connected, join, vote, reveal, restart, startCountdown, addTicket, removeTicket, setCurrentTicket };
 }

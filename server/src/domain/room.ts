@@ -1,4 +1,4 @@
-import type { Room, Participant, VoteValue, RoomStats, SerializedRoom, SerializedParticipant } from "./types.js";
+import type { Room, Participant, VoteValue, RoomStats, SerializedRoom, SerializedParticipant, JiraTicket, TicketVoteHistory } from "./types.js";
 import { VOTE_DECK, NUMERIC_VOTES } from "./types.js";
 import { AppError } from "./errors.js";
 
@@ -12,7 +12,55 @@ export function createRoom(id: string, name: string): Room {
     createdAt: now,
     updatedAt: now,
     participants: [],
+    tickets: [],
+    votedTickets: [],
+    currentTicketKey: null,
+    voteHistory: [],
   };
+}
+
+/** If room has tickets but no current ticket, set current to first. Returns true if room was updated. */
+export function ensureCurrentTicketIfAny(room: Room): boolean {
+  if (room.tickets.length > 0 && room.currentTicketKey === null) {
+    room.currentTicketKey = room.tickets[0].key;
+    room.updatedAt = new Date().toISOString();
+    return true;
+  }
+  return false;
+}
+
+export function parseJiraUrl(url: string): Pick<JiraTicket, "key" | "url"> | null {
+  const trimmed = url.trim();
+  const match = trimmed.match(/https?:\/\/[^/]+\/browse\/([A-Z][A-Z0-9]*-\d+)/i);
+  if (!match) return null;
+  return { key: match[1].toUpperCase(), url: trimmed };
+}
+
+export function addTicket(room: Room, key: string, url: string): Room {
+  if (room.tickets.some((t) => t.key === key)) {
+    throw new AppError("TICKET_EXISTS", `Ticket ${key} is already in this room`);
+  }
+  room.tickets.push({ key, url, addedAt: new Date().toISOString() });
+  room.updatedAt = new Date().toISOString();
+  return room;
+}
+
+export function removeTicket(room: Room, key: string): Room {
+  room.tickets = room.tickets.filter((t) => t.key !== key);
+  if (room.currentTicketKey === key) {
+    room.currentTicketKey = room.tickets.length > 0 ? room.tickets[0].key : null;
+  }
+  room.updatedAt = new Date().toISOString();
+  return room;
+}
+
+export function setCurrentTicket(room: Room, key: string | null): Room {
+  if (key !== null && !room.tickets.some((t) => t.key === key)) {
+    throw new AppError("TICKET_NOT_FOUND", `Ticket ${key} is not in this room`);
+  }
+  room.currentTicketKey = key;
+  room.updatedAt = new Date().toISOString();
+  return room;
 }
 
 export function buildRoomPath(roomId: string): string {
@@ -100,6 +148,29 @@ export function revealVotes(room: Room): Room {
   }
   room.status = "revealed";
   room.updatedAt = new Date().toISOString();
+
+  if (room.currentTicketKey) {
+    const snapshot: TicketVoteHistory = {
+      ticketKey: room.currentTicketKey,
+      round: room.round,
+      votes: room.participants.map((p) => ({ participantName: p.name, vote: p.vote })),
+      stats: calculateStats(room),
+      completedAt: room.updatedAt,
+    };
+    room.voteHistory = room.voteHistory.filter(
+      (h) => !(h.ticketKey === snapshot.ticketKey && h.round === snapshot.round),
+    );
+    room.voteHistory.push(snapshot);
+
+    const idx = room.tickets.findIndex((t) => t.key === room.currentTicketKey);
+    if (idx !== -1) {
+      const [moved] = room.tickets.splice(idx, 1);
+      if (!room.votedTickets) room.votedTickets = [];
+      room.votedTickets.push(moved);
+    }
+    room.currentTicketKey = room.tickets.length > 0 ? room.tickets[0].key : null;
+  }
+
   return room;
 }
 
@@ -181,5 +252,9 @@ export function serializeRoom(room: Room): SerializedRoom {
     round: room.round,
     participants,
     stats: isVoting ? null : calculateStats(room),
+    tickets: room.tickets,
+    votedTickets: room.votedTickets ?? [],
+    currentTicketKey: room.currentTicketKey,
+    voteHistory: room.voteHistory,
   };
 }

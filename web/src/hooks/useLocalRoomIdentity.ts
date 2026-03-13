@@ -33,6 +33,7 @@ export function useLocalRoomIdentity(roomId: string) {
   const saveVote = useCallback(
     (vote: VoteValue | null, round: number) => {
       if (!identity) return;
+      if (identity.vote === vote && identity.round === round) return;
       persist({ ...identity, vote, round });
     },
     [identity, persist],

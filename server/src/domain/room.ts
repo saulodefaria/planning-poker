@@ -46,6 +46,10 @@ export function addTicket(room: Room, key: string, url: string): Room {
 }
 
 export function removeTicket(room: Room, key: string): Room {
+  if (room.status === "revealed" && room.currentTicketKey === key) {
+    throw new AppError("INVALID_STATE", "Cannot remove the revealed ticket before starting a new round");
+  }
+
   room.tickets = room.tickets.filter((t) => t.key !== key);
   if (room.currentTicketKey === key) {
     room.currentTicketKey = room.tickets.length > 0 ? room.tickets[0].key : null;
@@ -55,6 +59,9 @@ export function removeTicket(room: Room, key: string): Room {
 }
 
 export function setCurrentTicket(room: Room, key: string | null): Room {
+  if (room.status === "revealed") {
+    throw new AppError("INVALID_STATE", "Cannot change the current ticket after reveal");
+  }
   if (key !== null && !room.tickets.some((t) => t.key === key)) {
     throw new AppError("TICKET_NOT_FOUND", `Ticket ${key} is not in this room`);
   }
@@ -109,10 +116,6 @@ export function validateVote(vote: string): VoteValue {
 }
 
 export function setVote(room: Room, participantId: string, vote: VoteValue): Room {
-  if (room.status !== "voting") {
-    throw new AppError("INVALID_STATE", "Cannot vote after reveal");
-  }
-
   const participant = room.participants.find((p) => p.id === participantId);
   if (!participant) {
     throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found in room");
@@ -122,14 +125,11 @@ export function setVote(room: Room, participantId: string, vote: VoteValue): Roo
   participant.hasVoted = true;
   participant.updatedAt = new Date().toISOString();
   room.updatedAt = new Date().toISOString();
+  syncCurrentRoundHistory(room);
   return room;
 }
 
 export function clearVote(room: Room, participantId: string): Room {
-  if (room.status !== "voting") {
-    throw new AppError("INVALID_STATE", "Cannot change vote after reveal");
-  }
-
   const participant = room.participants.find((p) => p.id === participantId);
   if (!participant) {
     throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found in room");
@@ -139,6 +139,7 @@ export function clearVote(room: Room, participantId: string): Room {
   participant.hasVoted = false;
   participant.updatedAt = new Date().toISOString();
   room.updatedAt = new Date().toISOString();
+  syncCurrentRoundHistory(room);
   return room;
 }
 
@@ -148,29 +149,7 @@ export function revealVotes(room: Room): Room {
   }
   room.status = "revealed";
   room.updatedAt = new Date().toISOString();
-
-  if (room.currentTicketKey) {
-    const snapshot: TicketVoteHistory = {
-      ticketKey: room.currentTicketKey,
-      round: room.round,
-      votes: room.participants.map((p) => ({ participantName: p.name, vote: p.vote })),
-      stats: calculateStats(room),
-      completedAt: room.updatedAt,
-    };
-    room.voteHistory = room.voteHistory.filter(
-      (h) => !(h.ticketKey === snapshot.ticketKey && h.round === snapshot.round),
-    );
-    room.voteHistory.push(snapshot);
-
-    const idx = room.tickets.findIndex((t) => t.key === room.currentTicketKey);
-    if (idx !== -1) {
-      const [moved] = room.tickets.splice(idx, 1);
-      if (!room.votedTickets) room.votedTickets = [];
-      room.votedTickets.push(moved);
-    }
-    room.currentTicketKey = room.tickets.length > 0 ? room.tickets[0].key : null;
-  }
-
+  syncCurrentRoundHistory(room);
   return room;
 }
 
@@ -178,6 +157,8 @@ export function restartRoom(room: Room): Room {
   if (room.status !== "revealed") {
     throw new AppError("INVALID_STATE", "Can only restart after reveal");
   }
+
+  moveCurrentTicketToVoted(room);
   room.status = "voting";
   room.round += 1;
   for (const p of room.participants) {
@@ -187,6 +168,48 @@ export function restartRoom(room: Room): Room {
   }
   room.updatedAt = new Date().toISOString();
   return room;
+}
+
+function syncCurrentRoundHistory(room: Room): void {
+  if (room.status !== "revealed" || room.currentTicketKey === null) {
+    return;
+  }
+
+  const existing = room.voteHistory.find(
+    (entry) => entry.ticketKey === room.currentTicketKey && entry.round === room.round,
+  );
+
+  const snapshot: TicketVoteHistory = {
+    ticketKey: room.currentTicketKey,
+    round: room.round,
+    votes: room.participants.map((participant) => ({
+      participantName: participant.name,
+      vote: participant.vote,
+    })),
+    stats: calculateStats(room),
+    completedAt: existing?.completedAt ?? room.updatedAt,
+  };
+
+  room.voteHistory = room.voteHistory.filter(
+    (entry) => !(entry.ticketKey === snapshot.ticketKey && entry.round === snapshot.round),
+  );
+  room.voteHistory.push(snapshot);
+}
+
+function moveCurrentTicketToVoted(room: Room): void {
+  if (room.currentTicketKey === null) {
+    return;
+  }
+
+  const currentTicketIndex = room.tickets.findIndex((ticket) => ticket.key === room.currentTicketKey);
+  if (currentTicketIndex === -1) {
+    room.currentTicketKey = room.tickets.length > 0 ? room.tickets[0].key : null;
+    return;
+  }
+
+  const [movedTicket] = room.tickets.splice(currentTicketIndex, 1);
+  room.votedTickets.push(movedTicket);
+  room.currentTicketKey = room.tickets.length > 0 ? room.tickets[0].key : null;
 }
 
 export function calculateStats(room: Room): RoomStats {

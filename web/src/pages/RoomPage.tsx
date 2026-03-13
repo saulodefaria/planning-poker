@@ -114,6 +114,16 @@ export function RoomPage() {
     lastRoundRef.current = roomState.round;
   }, [roomState?.round, roomState, saveVote]);
 
+  useEffect(() => {
+    if (!roomState || roomState.status !== "revealed" || !identity) return;
+
+    const ownParticipant = roomState.participants.find((participant) => participant.id === identity.participantId);
+    const revealedVote = ownParticipant?.vote ?? null;
+
+    setSelectedVote(revealedVote);
+    saveVote(revealedVote, roomState.round);
+  }, [identity, roomState, saveVote]);
+
   // Clear countdown if room becomes revealed (safety net)
   useEffect(() => {
     if (roomState?.status === "revealed") {
@@ -257,11 +267,12 @@ export function RoomPage() {
               )}
             </TableView>
 
-            {roomState.status !== "revealed" ? <VoteDeck selectedVote={selectedVote} onVote={handleVote} /> : null}
+            <VoteDeck selectedVote={selectedVote} onVote={handleVote} />
 
             {roomState.status === "revealed" && roomState.stats ? <StatsPanel stats={roomState.stats} /> : null}
 
             <TicketPanel
+              roomStatus={roomState.status}
               tickets={roomState.tickets}
               votedTickets={roomState.votedTickets ?? []}
               currentTicketKey={roomState.currentTicketKey}

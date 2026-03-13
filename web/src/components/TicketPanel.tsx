@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import type { JiraTicket, TicketVoteHistory } from '../types';
+import type { JiraTicket, RoomStatus, TicketVoteHistory } from '../types';
 
 interface Props {
+  roomStatus: RoomStatus;
   tickets: JiraTicket[];
   votedTickets: JiraTicket[];
   currentTicketKey: string | null;
@@ -65,12 +66,18 @@ function TicketRow({
   history,
   onRowClick,
   onRemove,
+  canSelect,
+  canRemove,
+  roomStatus,
 }: {
   ticket: JiraTicket;
   isCurrent: boolean;
   history: TicketVoteHistory | undefined;
   onRowClick: () => void;
   onRemove: () => void;
+  canSelect: boolean;
+  canRemove: boolean;
+  roomStatus: RoomStatus;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -78,9 +85,9 @@ function TicketRow({
     if ((e.target as HTMLElement).closest('a[href], button')) return;
     if (isCurrent && history) {
       setExpanded((v) => !v);
-    } else if (isCurrent) {
+    } else if (isCurrent && canSelect) {
       onRowClick(); // deselect (set to null)
-    } else {
+    } else if (canSelect) {
       onRowClick(); // select this ticket
     }
   };
@@ -91,15 +98,15 @@ function TicketRow({
       tabIndex={0}
       onClick={handleRowClick}
       onKeyDown={(e) => e.key === 'Enter' && handleRowClick(e as unknown as React.MouseEvent)}
-      className={`rounded-lg border px-3 py-2.5 transition-colors cursor-pointer select-none ${
+      className={`rounded-lg border px-3 py-2.5 transition-colors select-none ${
         isCurrent
           ? 'border-blue-500 bg-blue-500/20 ring-2 ring-blue-400/50'
           : 'border-border bg-slate-800/40 hover:border-slate-600 hover:bg-slate-800/60'
-      }`}>
+      } ${canSelect || isCurrent ? 'cursor-pointer' : 'cursor-default'}`}>
       <div className="flex items-center gap-2">
         {isCurrent && (
           <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-500/30 px-1.5 py-0.5 rounded">
-            Voting
+            {roomStatus === 'revealed' ? 'Revealed' : 'Voting'}
           </span>
         )}
 
@@ -124,7 +131,8 @@ function TicketRow({
             onRemove();
           }}
           title="Remove ticket"
-          className="ml-auto text-slate-500 hover:text-red-400 transition-colors cursor-pointer text-sm leading-none p-0.5">
+          disabled={!canRemove}
+          className="ml-auto text-slate-500 hover:text-red-400 transition-colors cursor-pointer text-sm leading-none p-0.5 disabled:cursor-not-allowed disabled:text-slate-700 disabled:hover:text-slate-700">
           ✕
         </button>
       </div>
@@ -169,6 +177,7 @@ function VotedTicketRow({ ticket, history }: { ticket: JiraTicket; history: Tick
 }
 
 export function TicketPanel({
+  roomStatus,
   tickets,
   votedTickets,
   currentTicketKey,
@@ -179,6 +188,7 @@ export function TicketPanel({
 }: Props) {
   const [inputValue, setInputValue] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const isTicketSelectionLocked = roomStatus === 'revealed';
 
   const handleAdd = () => {
     const key = parseJiraKey(inputValue);
@@ -230,7 +240,8 @@ export function TicketPanel({
               type="button"
               onClick={() => onSetCurrentTicket(null)}
               title="Deselect — vote without a ticket"
-              className="text-xs text-slate-500 hover:text-white border border-slate-600 hover:border-slate-400 rounded px-2 py-0.5 transition-colors cursor-pointer">
+              disabled={isTicketSelectionLocked}
+              className="text-xs text-slate-500 hover:text-white border border-slate-600 hover:border-slate-400 rounded px-2 py-0.5 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-700 disabled:hover:text-slate-700">
               Clear
             </button>
           </div>
@@ -274,6 +285,9 @@ export function TicketPanel({
                   ticket={ticket}
                   isCurrent={ticket.key === currentTicketKey}
                   history={mostRecentHistory(ticket.key)}
+                  canSelect={!isTicketSelectionLocked}
+                  canRemove={!isTicketSelectionLocked || ticket.key !== currentTicketKey}
+                  roomStatus={roomStatus}
                   onRowClick={() =>
                     onSetCurrentTicket(ticket.key === currentTicketKey ? null : ticket.key)
                   }

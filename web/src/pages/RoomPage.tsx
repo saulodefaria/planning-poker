@@ -1,7 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { useRoomSocket } from "../hooks/useRoomSocket";
-import { useLocalRoomIdentity } from "../hooks/useLocalRoomIdentity";
+import { Link, useParams } from "react-router-dom";
 import { JoinForm } from "../components/JoinForm";
 import { TableView } from "../components/TableView";
 import { VoteDeck } from "../components/VoteDeck";
@@ -11,184 +8,40 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { ShareLink } from "../components/ShareLink";
 import { Countdown } from "../components/Countdown";
 import { SiteHeader } from "../components/SiteHeader";
-import type { RoomError, RoomState, VoteValue } from "../types";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useRoomPageState } from "../hooks/useRoomPageState";
 
 export function RoomPage() {
-  const navigate = useNavigate();
-  const { roomId, roomSlug } = useParams<{ roomId: string; roomSlug?: string }>();
-  const [error, setError] = useState<RoomError | null>(null);
-  const [joined, setJoined] = useState(false);
-  const [selectedVote, setSelectedVote] = useState<VoteValue | null>(null);
-  const [showCountdown, setShowCountdown] = useState(false);
-  const [roomPreview, setRoomPreview] = useState<RoomState | null>(null);
-  const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId!);
-  const lastRoundRef = useRef<number | null>(null);
-
-  const onError = useCallback((err: RoomError) => {
-    if (err.code === "ROOM_NOT_FOUND") {
-      setRoomPreview(null);
-    }
-    setError(err);
-  }, []);
-  const onCountdown = useCallback(() => setShowCountdown(true), []);
-  const { roomState, connected, join, vote, restart, startCountdown, addTicket, removeTicket, setCurrentTicket } = useRoomSocket({
-    roomId: roomId!,
-    onError,
-    onCountdown,
-  });
-
-  useEffect(() => {
-    if (!roomId) return;
-
-    let cancelled = false;
-
-    const loadRoom = async () => {
-      try {
-        const response = await fetch(`/api/rooms/${roomId}`);
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          throw data ?? { code: "ROOM_NOT_FOUND", message: "Room not found" };
-        }
-
-        if (cancelled) return;
-
-        const room = data as RoomState;
-        setRoomPreview(room);
-        setError((current) => (current?.code === "ROOM_NOT_FOUND" ? null : current));
-
-        const canonicalPath = `/room/${room.id}`;
-        const currentPath = roomSlug ? `/room/${roomId}/${roomSlug}` : `/room/${roomId}`;
-        if (currentPath !== canonicalPath) {
-          navigate(canonicalPath, { replace: true });
-        }
-      } catch (err) {
-        if (cancelled) return;
-
-        const nextError =
-          err && typeof err === "object" && "code" in err && "message" in err
-            ? (err as RoomError)
-            : { code: "INTERNAL_ERROR", message: "Failed to load room." };
-
-        if (nextError.code === "ROOM_NOT_FOUND") {
-          setRoomPreview(null);
-        }
-        setError(nextError);
-      }
-    };
-
-    loadRoom();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate, roomId, roomSlug]);
-
-  // Auto-reconnect with saved identity
-  useEffect(() => {
-    if (!connected || joined || !identity) return;
-
-    join(identity.name, identity.participantId).then((ack) => {
-      if (ack.ok && ack.participantId) {
-        saveIdentity(ack.participantId, ack.canonicalName!);
-        setJoined(true);
-
-        // Restore vote from localStorage if it matches the current round
-        const room = ack.room;
-        if (room && room.status === "voting" && identity.round === room.round && identity.vote) {
-          setSelectedVote(identity.vote);
-        }
-      }
-    });
-  }, [connected, joined, identity, join, saveIdentity]);
-
-  // Clear selected vote when the round changes (restart)
-  useEffect(() => {
-    if (!roomState) return;
-
-    if (lastRoundRef.current !== null && roomState.round !== lastRoundRef.current) {
-      setSelectedVote(null);
-      saveVote(null, roomState.round);
-    }
-
-    lastRoundRef.current = roomState.round;
-  }, [roomState?.round, roomState, saveVote]);
-
-  useEffect(() => {
-    if (!roomState || roomState.status !== "revealed" || !identity) return;
-
-    const ownParticipant = roomState.participants.find((participant) => participant.id === identity.participantId);
-    const revealedVote = ownParticipant?.vote ?? null;
-
-    setSelectedVote(revealedVote);
-    saveVote(revealedVote, roomState.round);
-  }, [identity, roomState, saveVote]);
-
-  // Clear countdown if room becomes revealed (safety net)
-  useEffect(() => {
-    if (roomState?.status === "revealed") {
-      setShowCountdown(false);
-    }
-  }, [roomState?.status]);
-
-  // Page title: include current ticket when one is selected
-  useEffect(() => {
-    const base = roomState?.name ?? "Planning Poker";
-    document.title = roomState?.currentTicketKey ? `${roomState.currentTicketKey} | ${base}` : base;
-  }, [roomState?.name, roomState?.currentTicketKey]);
-
-  const handleJoin = async (name: string) => {
-    const ack = await join(name, identity?.participantId);
-    if (ack.ok && ack.participantId) {
-      saveIdentity(ack.participantId, ack.canonicalName!);
-      setJoined(true);
-    } else if (ack.error) {
-      if (ack.error.code === "ROOM_NOT_FOUND") {
-        setRoomPreview(null);
-      }
-      setError(ack.error);
-    }
-  };
-
-  const handleVote = (value: VoteValue) => {
-    if (!identity || !roomState) return;
-    if (selectedVote === value) {
-      setSelectedVote(null);
-      saveVote(null, roomState.round);
-      vote(identity.participantId, null);
-    } else {
-      setSelectedVote(value);
-      saveVote(value, roomState.round);
-      vote(identity.participantId, value);
-    }
-  };
-
-  const handleReveal = () => {
-    startCountdown();
-  };
-
-  const handleCountdownComplete = useCallback(() => {
-    setShowCountdown(false);
-  }, []);
+  const { roomId } = useParams<{ roomId: string }>();
 
   if (!roomId)
     return <div className="flex items-center justify-center min-h-screen text-red-500 text-xl">Invalid room URL</div>;
 
-  const activeRoom = roomState ?? roomPreview;
-  const isRoomUnavailable = !activeRoom && error?.code === "ROOM_NOT_FOUND";
-  const participantCount = activeRoom?.participants.length ?? 0;
-  const roundLine = activeRoom
-    ? `Round ${activeRoom.round} • ${participantCount} participant${participantCount !== 1 ? "s" : ""}`
-    : "";
-  const subtitle = activeRoom
-    ? activeRoom.currentTicketKey
-      ? `${activeRoom.currentTicketKey} · ${roundLine}`
-      : roundLine
-    : isRoomUnavailable
-      ? "This room is no longer available."
-      : "Join the table and start estimating together.";
+  const {
+    activeRoom,
+    addTicket,
+    clearError,
+    documentTitle,
+    error,
+    handleCountdownComplete,
+    handleJoin,
+    handleReveal,
+    handleVote,
+    identity,
+    joinStatus,
+    pageStage,
+    removeTicket,
+    restart,
+    roomState,
+    selectedVote,
+    setCurrentTicket,
+    showCountdown,
+    subtitle,
+  } = useRoomPageState(roomId);
 
-  if (isRoomUnavailable) {
+  useDocumentTitle(documentTitle);
+
+  if (pageStage === "room-unavailable") {
     return (
       <div className="min-h-screen">
         <SiteHeader title="Room not found" subtitle="This room may have expired or the link may be incorrect." />
@@ -207,7 +60,7 @@ export function RoomPage() {
     );
   }
 
-  if (!connected) {
+  if (pageStage === "connecting") {
     return (
       <div className="min-h-screen">
         <SiteHeader
@@ -222,6 +75,9 @@ export function RoomPage() {
     );
   }
 
+  const liveRoom = roomState!;
+  const restoringMessage = identity?.name ? `Restoring your seat as ${identity.name}...` : "Restoring your seat...";
+
   return (
     <div className="min-h-screen">
       <SiteHeader
@@ -231,26 +87,35 @@ export function RoomPage() {
       />
 
       <main className="mx-auto max-w-3xl px-4 py-6 w-full">
-        <ErrorBanner error={error} onDismiss={() => setError(null)} />
+        <ErrorBanner error={error} onDismiss={clearError} />
 
-        {!joined ? (
-          <>
-            <JoinForm defaultName={identity?.name} roomName={activeRoom?.name} onJoin={handleJoin} />
-          </>
-        ) : !roomState ? (
+        {pageStage === "restoring" ? (
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
+            <h2 className="text-2xl font-semibold text-white">Rejoining the table</h2>
+            <p className="text-slate-400">{restoringMessage}</p>
+          </div>
+        ) : pageStage === "join-form" ? (
+          <JoinForm
+            defaultName={identity?.name}
+            roomName={activeRoom?.name}
+            onJoin={handleJoin}
+            disabled={joinStatus === "submitting"}
+            loading={joinStatus === "submitting"}
+          />
+        ) : pageStage === "loading-room" ? (
           <div className="flex items-center justify-center min-h-[50vh] text-slate-400 text-lg">Loading room...</div>
         ) : (
           <>
             <TableView
-              participants={roomState.participants}
-              roomStatus={roomState.status}
+              participants={liveRoom.participants}
+              roomStatus={liveRoom.status}
               currentParticipantId={identity?.participantId ?? null}>
               {showCountdown ? (
                 <Countdown onComplete={handleCountdownComplete} />
               ) : (
                 <>
-                  {roomState.participants.length > 0 &&
-                    (roomState.status !== "revealed" ? (
+                  {liveRoom.participants.length > 0 &&
+                    (liveRoom.status !== "revealed" ? (
                       <button
                         className="px-8 py-2.5 text-base font-semibold bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors cursor-pointer"
                         onClick={handleReveal}>
@@ -269,14 +134,14 @@ export function RoomPage() {
 
             <VoteDeck selectedVote={selectedVote} onVote={handleVote} />
 
-            {roomState.status === "revealed" && roomState.stats ? <StatsPanel stats={roomState.stats} /> : null}
+            {liveRoom.status === "revealed" && liveRoom.stats ? <StatsPanel stats={liveRoom.stats} /> : null}
 
             <TicketPanel
-              roomStatus={roomState.status}
-              tickets={roomState.tickets}
-              votedTickets={roomState.votedTickets ?? []}
-              currentTicketKey={roomState.currentTicketKey}
-              voteHistory={roomState.voteHistory}
+              roomStatus={liveRoom.status}
+              tickets={liveRoom.tickets}
+              votedTickets={liveRoom.votedTickets ?? []}
+              currentTicketKey={liveRoom.currentTicketKey}
+              voteHistory={liveRoom.voteHistory}
               onAddTicket={addTicket}
               onRemoveTicket={removeTicket}
               onSetCurrentTicket={setCurrentTicket}

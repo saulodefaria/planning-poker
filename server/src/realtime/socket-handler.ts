@@ -18,6 +18,21 @@ interface RoomActionPayload {
   roomId: string;
 }
 
+interface TicketAddPayload {
+  roomId: string;
+  url: string;
+}
+
+interface TicketRemovePayload {
+  roomId: string;
+  key: string;
+}
+
+interface TicketSetCurrentPayload {
+  roomId: string;
+  key: string | null;
+}
+
 function socketRoomName(roomId: string): string {
   return `room:${roomId}`;
 }
@@ -123,6 +138,42 @@ export function registerSocketHandlers(io: Server, roomService: RoomService): vo
         }
 
         const room = await roomService.restart(payload.roomId);
+        io.to(socketRoomName(payload.roomId)).emit('room:state', room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on('ticket:add', async (payload: TicketAddPayload) => {
+      try {
+        if (!payload.roomId || !payload.url) {
+          throw new AppError('INVALID_TICKET_URL', 'Room ID and URL are required');
+        }
+        const room = await roomService.addTicket(payload.roomId, payload.url);
+        io.to(socketRoomName(payload.roomId)).emit('room:state', room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on('ticket:remove', async (payload: TicketRemovePayload) => {
+      try {
+        if (!payload.roomId || !payload.key) {
+          throw new AppError('INVALID_TICKET_URL', 'Room ID and ticket key are required');
+        }
+        const room = await roomService.removeTicket(payload.roomId, payload.key);
+        io.to(socketRoomName(payload.roomId)).emit('room:state', room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on('ticket:set-current', async (payload: TicketSetCurrentPayload) => {
+      try {
+        if (!payload.roomId) {
+          throw new AppError('ROOM_NOT_FOUND', 'Room ID is required');
+        }
+        const room = await roomService.setCurrentTicket(payload.roomId, payload.key ?? null);
         io.to(socketRoomName(payload.roomId)).emit('room:state', room);
       } catch (err) {
         emitError(socket, err);

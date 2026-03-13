@@ -6,7 +6,7 @@ interface Props {
 
 export function StatsPanel({ stats }: Props) {
   return (
-    <div className="bg-surface border border-border rounded-lg p-5">
+    <div className="bg-surface border border-border rounded-lg p-5 mb-5">
       <h3 className="text-lg font-semibold mb-3 text-white">Results</h3>
 
       <div className="flex gap-6 mb-4">

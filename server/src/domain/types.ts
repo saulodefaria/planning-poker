@@ -14,6 +14,25 @@ export interface Participant {
   updatedAt: string;
 }
 
+export interface JiraTicket {
+  key: string;
+  url: string;
+  addedAt: string;
+}
+
+export interface TicketVoteRecord {
+  participantName: string;
+  vote: VoteValue | null;
+}
+
+export interface TicketVoteHistory {
+  ticketKey: string;
+  round: number;
+  votes: TicketVoteRecord[];
+  stats: RoomStats | null;
+  completedAt: string;
+}
+
 export interface Room {
   id: string;
   name: string;
@@ -22,6 +41,10 @@ export interface Room {
   createdAt: string;
   updatedAt: string;
   participants: Participant[];
+  tickets: JiraTicket[];
+  votedTickets: JiraTicket[];
+  currentTicketKey: string | null;
+  voteHistory: TicketVoteHistory[];
 }
 
 export interface RoomStats {
@@ -44,4 +67,8 @@ export interface SerializedRoom {
   round: number;
   participants: SerializedParticipant[];
   stats: RoomStats | null;
+  tickets: JiraTicket[];
+  votedTickets: JiraTicket[];
+  currentTicketKey: string | null;
+  voteHistory: TicketVoteHistory[];
 }

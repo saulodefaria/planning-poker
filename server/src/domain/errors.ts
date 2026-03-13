@@ -4,7 +4,10 @@ export type ErrorCode =
   | 'INVALID_NAME'
   | 'INVALID_VOTE'
   | 'PARTICIPANT_NOT_FOUND'
-  | 'INVALID_STATE';
+  | 'INVALID_STATE'
+  | 'TICKET_EXISTS'
+  | 'TICKET_NOT_FOUND'
+  | 'INVALID_TICKET_URL';
 
 export class AppError extends Error {
   constructor(

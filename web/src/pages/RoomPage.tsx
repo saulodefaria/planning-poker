@@ -6,6 +6,7 @@ import { JoinForm } from "../components/JoinForm";
 import { TableView } from "../components/TableView";
 import { VoteDeck } from "../components/VoteDeck";
 import { StatsPanel } from "../components/StatsPanel";
+import { TicketPanel } from "../components/TicketPanel";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { ShareLink } from "../components/ShareLink";
 import { Countdown } from "../components/Countdown";
@@ -30,7 +31,7 @@ export function RoomPage() {
     setError(err);
   }, []);
   const onCountdown = useCallback(() => setShowCountdown(true), []);
-  const { roomState, connected, join, vote, restart, startCountdown } = useRoomSocket({
+  const { roomState, connected, join, vote, restart, startCountdown, addTicket, removeTicket, setCurrentTicket } = useRoomSocket({
     roomId: roomId!,
     onError,
     onCountdown,
@@ -120,6 +121,12 @@ export function RoomPage() {
     }
   }, [roomState?.status]);
 
+  // Page title: include current ticket when one is selected
+  useEffect(() => {
+    const base = roomState?.name ?? "Planning Poker";
+    document.title = roomState?.currentTicketKey ? `${roomState.currentTicketKey} | ${base}` : base;
+  }, [roomState?.name, roomState?.currentTicketKey]);
+
   const handleJoin = async (name: string) => {
     const ack = await join(name, identity?.participantId);
     if (ack.ok && ack.participantId) {
@@ -160,8 +167,13 @@ export function RoomPage() {
   const activeRoom = roomState ?? roomPreview;
   const isRoomUnavailable = !activeRoom && error?.code === "ROOM_NOT_FOUND";
   const participantCount = activeRoom?.participants.length ?? 0;
-  const subtitle = activeRoom
+  const roundLine = activeRoom
     ? `Round ${activeRoom.round} • ${participantCount} participant${participantCount !== 1 ? "s" : ""}`
+    : "";
+  const subtitle = activeRoom
+    ? activeRoom.currentTicketKey
+      ? `${activeRoom.currentTicketKey} · ${roundLine}`
+      : roundLine
     : isRoomUnavailable
       ? "This room is no longer available."
       : "Join the table and start estimating together.";
@@ -248,6 +260,16 @@ export function RoomPage() {
             {roomState.status !== "revealed" ? <VoteDeck selectedVote={selectedVote} onVote={handleVote} /> : null}
 
             {roomState.status === "revealed" && roomState.stats ? <StatsPanel stats={roomState.stats} /> : null}
+
+            <TicketPanel
+              tickets={roomState.tickets}
+              votedTickets={roomState.votedTickets ?? []}
+              currentTicketKey={roomState.currentTicketKey}
+              voteHistory={roomState.voteHistory}
+              onAddTicket={addTicket}
+              onRemoveTicket={removeTicket}
+              onSetCurrentTicket={setCurrentTicket}
+            />
           </>
         )}
       </main>

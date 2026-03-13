@@ -13,6 +13,11 @@ import {
   revealVotes,
   restartRoom,
   serializeRoom,
+  parseJiraUrl,
+  addTicket,
+  removeTicket,
+  setCurrentTicket,
+  ensureCurrentTicketIfAny,
 } from "../domain/room.js";
 import { AppError } from "../domain/errors.js";
 
@@ -39,12 +44,19 @@ export class RoomService {
 
   async get(roomId: string): Promise<SerializedRoom> {
     const room = await this.getRoom(roomId);
+    if (ensureCurrentTicketIfAny(room)) {
+      await this.repo.save(room, this.config.roomTtlSeconds);
+    }
     return serializeRoom(room);
   }
 
   async join(roomId: string, name: string, participantId?: string): Promise<JoinResult> {
     const room = await this.getRoom(roomId);
     const validatedName = validateName(name, this.config.maxNameLength);
+
+    if (ensureCurrentTicketIfAny(room)) {
+      await this.repo.save(room, this.config.roomTtlSeconds);
+    }
 
     // Reconnect existing participant
     if (participantId) {
@@ -116,6 +128,35 @@ export class RoomService {
     restartRoom(room);
     await this.repo.save(room, this.config.roomTtlSeconds);
     console.log(`[Room] Restarted: ${roomId} (round ${room.round})`);
+    return serializeRoom(room);
+  }
+
+  async addTicket(roomId: string, url: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    const parsed = parseJiraUrl(url);
+    if (!parsed) {
+      throw new AppError("INVALID_TICKET_URL", "Could not parse a Jira issue key from that URL");
+    }
+    addTicket(room, parsed.key, parsed.url);
+    ensureCurrentTicketIfAny(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    console.log(`[Room] Ticket added: ${parsed.key} in ${roomId}`);
+    return serializeRoom(room);
+  }
+
+  async removeTicket(roomId: string, key: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    removeTicket(room, key);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    console.log(`[Room] Ticket removed: ${key} in ${roomId}`);
+    return serializeRoom(room);
+  }
+
+  async setCurrentTicket(roomId: string, key: string | null): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    setCurrentTicket(room, key);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    console.log(`[Room] Current ticket set: ${key ?? "none"} in ${roomId}`);
     return serializeRoom(room);
   }
 

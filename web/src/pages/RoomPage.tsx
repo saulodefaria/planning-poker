@@ -60,7 +60,7 @@ export function RoomPage() {
     );
   }
 
-  if (pageStage === "connecting") {
+  if (pageStage === "connecting" || pageStage === "restoring") {
     return (
       <div className="min-h-screen">
         <SiteHeader
@@ -76,7 +76,6 @@ export function RoomPage() {
   }
 
   const liveRoom = roomState!;
-  const restoringMessage = identity?.name ? `Restoring your seat as ${identity.name}...` : "Restoring your seat...";
 
   return (
     <div className="min-h-screen">
@@ -89,12 +88,7 @@ export function RoomPage() {
       <main className="mx-auto max-w-3xl px-4 py-6 w-full">
         <ErrorBanner error={error} onDismiss={clearError} />
 
-        {pageStage === "restoring" ? (
-          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
-            <h2 className="text-2xl font-semibold text-white">Rejoining the table</h2>
-            <p className="text-slate-400">{restoringMessage}</p>
-          </div>
-        ) : pageStage === "join-form" ? (
+        {pageStage === "join-form" ? (
           <JoinForm
             defaultName={identity?.name}
             roomName={activeRoom?.name}

@@ -19,6 +19,7 @@ export function RoomPage() {
 
   const {
     activeRoom,
+    activeThrows,
     addTicket,
     clearError,
     documentTitle,
@@ -26,6 +27,7 @@ export function RoomPage() {
     handleCountdownComplete,
     handleJoin,
     handleReveal,
+    handleThrowPaperBall,
     handleVote,
     identity,
     joinStatus,
@@ -103,7 +105,9 @@ export function RoomPage() {
             <TableView
               participants={liveRoom.participants}
               roomStatus={liveRoom.status}
-              currentParticipantId={identity?.participantId ?? null}>
+              currentParticipantId={identity?.participantId ?? null}
+              activeThrows={activeThrows}
+              onThrowPaperBall={handleThrowPaperBall}>
               {showCountdown ? (
                 <Countdown onComplete={handleCountdownComplete} />
               ) : (

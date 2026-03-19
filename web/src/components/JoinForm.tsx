@@ -33,7 +33,7 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading
     <div className="flex w-full min-w-0 flex-col items-center justify-center px-4 py-12">
       <section className="w-full max-w-lg">
         <div className="nocturne-glass neon-glow rounded-4xl border border-outline-variant/15 p-8 shadow-[0_20px_40px_rgba(0,0,0,0.4)] md:p-12">
-          <div className="mb-10 text-left">
+          <div className="mb-8 text-left">
             <h1 className="mb-4 text-4xl font-extrabold tracking-tighter text-on-surface md:text-5xl">
               {roomName ? `Join ${roomName}` : "Join room"}
             </h1>
@@ -42,14 +42,14 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-3">
               <label
                 htmlFor="join-display-name"
                 className="px-1 text-xs font-bold tracking-widest text-primary uppercase">
                 Identification
               </label>
-              <div className="group relative">
+              <div className="group relative mt-3">
                 <PersonIcon className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-on-surface-variant transition-colors group-focus-within:text-primary" />
                 <input
                   id="join-display-name"
@@ -92,7 +92,7 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading
               <svg className="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
               </svg>
-              <span className="text-[10px] font-bold tracking-tight uppercase">Session</span>
+              <span className="text-[10px] font-bold tracking-tight uppercase">Secure</span>
             </div>
           </div>
         </div>

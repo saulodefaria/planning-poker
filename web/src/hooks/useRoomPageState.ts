@@ -23,6 +23,7 @@ export function useRoomPageState(roomId: string) {
   const [showCountdown, setShowCountdown] = useState(false);
   const [activeThrows, setActiveThrows] = useState<PaperBallThrowEvent[]>([]);
   const lastRoundRef = useRef<number | null>(null);
+  const paperBallRemovalTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId);
 
   const handleSocketError = useCallback((nextError: RoomError) => {
@@ -40,9 +41,12 @@ export function useRoomPageState(roomId: string) {
   const handlePaperBallThrown = useCallback((event: PaperBallThrowEvent) => {
     setActiveThrows((currentThrows) => [...currentThrows, event]);
 
-    window.setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      paperBallRemovalTimeoutsRef.current = paperBallRemovalTimeoutsRef.current.filter((id) => id !== timeoutId);
       setActiveThrows((currentThrows) => currentThrows.filter((paperBallThrow) => paperBallThrow.id !== event.id));
     }, PAPER_BALL_ANIMATION_MS);
+
+    paperBallRemovalTimeoutsRef.current.push(timeoutId);
   }, []);
 
   const {
@@ -56,13 +60,12 @@ export function useRoomPageState(roomId: string) {
     addTicket,
     removeTicket,
     setCurrentTicket,
-  } =
-    useRoomSocket({
-      roomId,
-      onError: handleSocketError,
-      onCountdown: handleCountdown,
-      onPaperBallThrown: handlePaperBallThrown,
-    });
+  } = useRoomSocket({
+    roomId,
+    onError: handleSocketError,
+    onCountdown: handleCountdown,
+    onPaperBallThrown: handlePaperBallThrown,
+  });
 
   useEffect(() => {
     const savedIdentity = loadRoomIdentity(roomId);
@@ -74,6 +77,14 @@ export function useRoomPageState(roomId: string) {
     setShowCountdown(false);
     setActiveThrows([]);
     lastRoundRef.current = null;
+
+    return () => {
+      for (const timeoutId of paperBallRemovalTimeoutsRef.current) {
+        clearTimeout(timeoutId);
+      }
+
+      paperBallRemovalTimeoutsRef.current = [];
+    };
   }, [roomId]);
 
   useEffect(() => {

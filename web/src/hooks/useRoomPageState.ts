@@ -3,6 +3,7 @@ import { useLocalRoomIdentity } from "./useLocalRoomIdentity";
 import { useRoomSocket } from "./useRoomSocket";
 import { getRoom, toRoomError } from "../services/room-api";
 import { loadRoomIdentity } from "../services/room-identity-storage";
+import { PAPER_BALL_ANIMATION_MS } from "../paper-ball-motion";
 import {
   getDocumentTitle,
   getInitialJoinStatus,
@@ -12,7 +13,7 @@ import {
   shouldAttemptAutoJoin,
   type JoinStatus,
 } from "../services/room-page-state";
-import type { RoomError, RoomState, VoteValue } from "../types";
+import type { PaperBallThrowEvent, RoomError, RoomState, VoteValue } from "../types";
 
 export function useRoomPageState(roomId: string) {
   const [error, setError] = useState<RoomError | null>(null);
@@ -20,7 +21,9 @@ export function useRoomPageState(roomId: string) {
   const [joinStatus, setJoinStatus] = useState<JoinStatus>(() => getInitialJoinStatus(loadRoomIdentity(roomId)));
   const [selectedVote, setSelectedVote] = useState<VoteValue | null>(null);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [activeThrows, setActiveThrows] = useState<PaperBallThrowEvent[]>([]);
   const lastRoundRef = useRef<number | null>(null);
+  const paperBallRemovalTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId);
 
   const handleSocketError = useCallback((nextError: RoomError) => {
@@ -35,12 +38,34 @@ export function useRoomPageState(roomId: string) {
     setShowCountdown(true);
   }, []);
 
-  const { roomState, connected, join, vote, restart, startCountdown, addTicket, removeTicket, setCurrentTicket } =
-    useRoomSocket({
-      roomId,
-      onError: handleSocketError,
-      onCountdown: handleCountdown,
-    });
+  const handlePaperBallThrown = useCallback((event: PaperBallThrowEvent) => {
+    setActiveThrows((currentThrows) => [...currentThrows, event]);
+
+    const timeoutId = setTimeout(() => {
+      paperBallRemovalTimeoutsRef.current = paperBallRemovalTimeoutsRef.current.filter((id) => id !== timeoutId);
+      setActiveThrows((currentThrows) => currentThrows.filter((paperBallThrow) => paperBallThrow.id !== event.id));
+    }, PAPER_BALL_ANIMATION_MS);
+
+    paperBallRemovalTimeoutsRef.current.push(timeoutId);
+  }, []);
+
+  const {
+    roomState,
+    connected,
+    join,
+    vote,
+    restart,
+    startCountdown,
+    throwPaperBall,
+    addTicket,
+    removeTicket,
+    setCurrentTicket,
+  } = useRoomSocket({
+    roomId,
+    onError: handleSocketError,
+    onCountdown: handleCountdown,
+    onPaperBallThrown: handlePaperBallThrown,
+  });
 
   useEffect(() => {
     const savedIdentity = loadRoomIdentity(roomId);
@@ -50,7 +75,16 @@ export function useRoomPageState(roomId: string) {
     setJoinStatus(getInitialJoinStatus(savedIdentity));
     setSelectedVote(null);
     setShowCountdown(false);
+    setActiveThrows([]);
     lastRoundRef.current = null;
+
+    return () => {
+      for (const timeoutId of paperBallRemovalTimeoutsRef.current) {
+        clearTimeout(timeoutId);
+      }
+
+      paperBallRemovalTimeoutsRef.current = [];
+    };
   }, [roomId]);
 
   useEffect(() => {
@@ -219,6 +253,23 @@ export function useRoomPageState(roomId: string) {
     setShowCountdown(false);
   }, []);
 
+  const handleThrowPaperBall = useCallback(
+    (targetParticipantId: string) => {
+      if (!identity || !roomState) {
+        return;
+      }
+
+      const targetParticipant = roomState.participants.find((participant) => participant.id === targetParticipantId);
+
+      if (!targetParticipant || targetParticipant.id === identity.participantId) {
+        return;
+      }
+
+      throwPaperBall(identity.participantId, targetParticipantId);
+    },
+    [identity, roomState, throwPaperBall],
+  );
+
   const activeRoom = roomState ?? roomPreview;
   const pageStage = getRoomPageStage({
     activeRoom,
@@ -233,6 +284,7 @@ export function useRoomPageState(roomId: string) {
 
   return {
     activeRoom,
+    activeThrows,
     addTicket,
     clearError: () => setError(null),
     connected,
@@ -241,6 +293,7 @@ export function useRoomPageState(roomId: string) {
     handleCountdownComplete,
     handleJoin,
     handleReveal,
+    handleThrowPaperBall,
     handleVote,
     identity,
     joinStatus,

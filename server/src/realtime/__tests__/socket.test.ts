@@ -308,4 +308,40 @@ describe("Socket.IO handlers", () => {
     expect(restarted.round).toBe(2);
     expect(restarted.participants[0].hasVoted).toBe(false);
   });
+
+  it("paper ball throw is broadcast to everyone in the room", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+
+    const client1 = createClient();
+    const client2 = createClient();
+    await Promise.all([waitForConnect(client1), waitForConnect(client2)]);
+
+    const alice = await new Promise<any>((resolve) => {
+      client1.emit("room:join", { roomId, name: "Alice" }, resolve);
+    });
+
+    const bob = await new Promise<any>((resolve) => {
+      client2.emit("room:join", { roomId, name: "Bob" }, resolve);
+    });
+
+    const throwPromise = new Promise<any>((resolve) => {
+      client2.on("room:paper-ball-thrown", (event) => {
+        resolve(event);
+      });
+    });
+
+    client1.emit("room:throw-paper-ball", {
+      roomId,
+      fromParticipantId: alice.participantId,
+      toParticipantId: bob.participantId,
+    });
+
+    const event = await throwPromise;
+    expect(event.roomId).toBe(roomId);
+    expect(event.fromParticipantId).toBe(alice.participantId);
+    expect(event.toParticipantId).toBe(bob.participantId);
+    expect(["left", "right"]).toContain(event.side);
+    expect(typeof event.id).toBe("string");
+  });
+
 });

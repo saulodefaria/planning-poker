@@ -32,7 +32,9 @@ export function RoomPage() {
 
   if (!roomId)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface text-lg text-error">Invalid room URL</div>
+      <div className="flex min-h-screen items-center justify-center bg-surface text-lg text-error">
+        Invalid room URL
+      </div>
     );
 
   const {
@@ -130,14 +132,12 @@ export function RoomPage() {
             loading={joinStatus === "submitting"}
           />
         ) : pageStage === "loading-room" ? (
-          <div className="flex min-h-[50vh] items-center justify-center text-lg text-on-surface-variant">Loading room…</div>
+          <div className="flex min-h-[50vh] items-center justify-center text-lg text-on-surface-variant">
+            Loading room…
+          </div>
         ) : (
           <div className="flex flex-col gap-6 md:gap-7">
-            {subtitle ? (
-              <p className="text-center text-sm text-on-surface-variant md:hidden">
-                {subtitle}
-              </p>
-            ) : null}
+            {subtitle ? <p className="text-center text-sm text-on-surface-variant md:hidden">{subtitle}</p> : null}
 
             <TableView
               participants={liveRoom.participants}
@@ -173,6 +173,8 @@ export function RoomPage() {
 
             <VoteDeck selectedVote={selectedVote} onVote={handleVote} />
 
+            {liveRoom.status === "revealed" && liveRoom.stats ? <StatsPanel stats={liveRoom.stats} /> : null}
+
             <TicketPanel
               roomStatus={liveRoom.status}
               tickets={liveRoom.tickets}
@@ -183,8 +185,6 @@ export function RoomPage() {
               onRemoveTicket={removeTicket}
               onSetCurrentTicket={setCurrentTicket}
             />
-
-            {liveRoom.status === "revealed" && liveRoom.stats ? <StatsPanel stats={liveRoom.stats} /> : null}
           </div>
         )}
       </main>

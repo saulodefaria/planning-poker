@@ -30,14 +30,9 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading
   };
 
   return (
-    <div className="relative flex w-full flex-col items-center justify-center px-4 py-12">
-      <div className="pointer-events-none absolute top-1/4 -left-24 size-96 rounded-full bg-primary/5 blur-[120px]" />
-      <div className="pointer-events-none absolute right-[-6rem] bottom-1/4 size-96 rounded-full bg-secondary/5 blur-[120px]" />
-
-      <section className="relative w-full max-w-lg">
-        <div className="pointer-events-none absolute -top-12 -left-6 h-24 w-24 -rotate-12 rounded-3xl bg-primary/10 blur-2xl" />
-
-        <div className="nocturne-glass neon-glow relative z-10 rounded-[2rem] border border-outline-variant/15 p-8 shadow-[0_20px_40px_rgba(0,0,0,0.4)] md:p-12">
+    <div className="flex w-full min-w-0 flex-col items-center justify-center px-4 py-12">
+      <section className="w-full max-w-lg">
+        <div className="nocturne-glass neon-glow rounded-4xl border border-outline-variant/15 p-8 shadow-[0_20px_40px_rgba(0,0,0,0.4)] md:p-12">
           <div className="mb-10 text-left">
             <h1 className="mb-4 text-4xl font-extrabold tracking-tighter text-on-surface md:text-5xl">
               {roomName ? `Join ${roomName}` : "Join room"}
@@ -49,7 +44,9 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-3">
-              <label htmlFor="join-display-name" className="px-1 text-xs font-bold tracking-widest text-primary uppercase">
+              <label
+                htmlFor="join-display-name"
+                className="px-1 text-xs font-bold tracking-widest text-primary uppercase">
                 Identification
               </label>
               <div className="group relative">
@@ -99,8 +96,6 @@ export function JoinForm({ defaultName = "", roomName, onJoin, disabled, loading
             </div>
           </div>
         </div>
-
-        <div className="pointer-events-none absolute -right-6 -bottom-6 size-32 rounded-full bg-secondary/10 blur-3xl" />
       </section>
     </div>
   );

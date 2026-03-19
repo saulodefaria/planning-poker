@@ -3,6 +3,7 @@ import { useLocalRoomIdentity } from "./useLocalRoomIdentity";
 import { useRoomSocket } from "./useRoomSocket";
 import { getRoom, toRoomError } from "../services/room-api";
 import { loadRoomIdentity } from "../services/room-identity-storage";
+import { PAPER_BALL_ANIMATION_MS } from "../paper-ball-motion";
 import {
   getDocumentTitle,
   getInitialJoinStatus,
@@ -41,7 +42,7 @@ export function useRoomPageState(roomId: string) {
 
     window.setTimeout(() => {
       setActiveThrows((currentThrows) => currentThrows.filter((paperBallThrow) => paperBallThrow.id !== event.id));
-    }, 1700);
+    }, PAPER_BALL_ANIMATION_MS);
   }, []);
 
   const {

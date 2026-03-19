@@ -30,92 +30,40 @@ body {
   animation: countdown-fade 0.3s ease-in forwards;
 }
 
-.participant-name-hand {
-  opacity: 0;
-  transform: translateY(1px) scale(0.85);
-  transition: opacity 120ms ease, transform 120ms ease;
+.participant-seat-trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
-button:hover .participant-name-hand,
-button:focus-visible .participant-name-hand {
-  opacity: 1;
-  transform: translateY(0) scale(1);
+.participant-seat-trigger:focus-visible {
+  outline: none;
 }
 
-@keyframes paper-ball-throw-left {
-  0% {
-    transform: translate(-92px, -8px) scale(0.7);
-    opacity: 0;
-  }
-  25% {
-    transform: translate(-36px, -24px) scale(0.95);
-    opacity: 1;
-  }
-  48% {
-    transform: translate(0px, 0px) scale(1.05);
-    opacity: 1;
-  }
-  65% {
-    transform: translate(6px, 32px) scale(0.95);
-  }
-  78% {
-    transform: translate(2px, 22px) scale(0.9);
-  }
-  88% {
-    transform: translate(5px, 32px) scale(0.82);
-  }
-  100% {
-    transform: translate(4px, 34px) scale(0.7);
-    opacity: 0;
-  }
-}
-
-@keyframes paper-ball-throw-right {
-  0% {
-    transform: translate(92px, -8px) scale(0.7);
-    opacity: 0;
-  }
-  25% {
-    transform: translate(36px, -24px) scale(0.95);
-    opacity: 1;
-  }
-  48% {
-    transform: translate(0px, 0px) scale(1.05);
-    opacity: 1;
-  }
-  65% {
-    transform: translate(-6px, 32px) scale(0.95);
-  }
-  78% {
-    transform: translate(-2px, 22px) scale(0.9);
-  }
-  88% {
-    transform: translate(-5px, 32px) scale(0.82);
-  }
-  100% {
-    transform: translate(-4px, 34px) scale(0.7);
-    opacity: 0;
-  }
+.paper-ball-stage {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 20;
 }
 
 .paper-ball-throw {
   position: absolute;
-  top: 38%;
-  left: 50%;
-  width: 13px;
-  height: 13px;
-  margin-left: -6.5px;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
   background:
     radial-gradient(circle at 28% 30%, #f8fafc 0 24%, #d8dee9 25% 48%, #b5bdcc 49% 100%);
-  box-shadow: inset -1px -1px 1px rgba(15, 23, 42, 0.28);
+  box-shadow:
+    inset -1px -1px 1px rgba(15, 23, 42, 0.28),
+    0 1px 2px rgba(15, 23, 42, 0.22);
   pointer-events: none;
-}
-
-.paper-ball-throw-left {
-  animation: paper-ball-throw-left 1.7s cubic-bezier(0.16, 0.84, 0.25, 1) forwards;
-}
-
-.paper-ball-throw-right {
-  animation: paper-ball-throw-right 1.7s cubic-bezier(0.16, 0.84, 0.25, 1) forwards;
+  opacity: 0;
+  will-change: transform, opacity;
+  z-index: 21;
 }

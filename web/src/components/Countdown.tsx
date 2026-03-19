@@ -32,5 +32,10 @@ export function Countdown({ onComplete }: Props) {
 
   if (count <= 0) return null;
 
-  return <span className={`text-6xl sm:text-7xl font-black text-white drop-shadow-lg ${animClass}`}>{count}</span>;
+  return (
+    <span
+      className={`text-6xl font-black text-primary drop-shadow-[0_0_24px_rgba(78,222,163,0.35)] sm:text-7xl ${animClass}`}>
+      {count}
+    </span>
+  );
 }

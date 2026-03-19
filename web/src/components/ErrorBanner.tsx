@@ -1,4 +1,4 @@
-import type { RoomError } from '../types';
+import type { RoomError } from "../types";
 
 interface Props {
   error: RoomError | null;
@@ -9,10 +9,14 @@ export function ErrorBanner({ error, onDismiss }: Props) {
   if (!error) return null;
 
   return (
-    <div className="flex items-center justify-between bg-red-500 text-white px-4 py-2.5 rounded-lg mb-4">
+    <div className="mb-4 flex items-center justify-between rounded-xl border border-error/30 bg-error-container/40 px-4 py-3 text-on-error-container">
       <span className="text-sm">{error.message}</span>
-      <button onClick={onDismiss} className="ml-4 text-xl leading-none hover:opacity-80 cursor-pointer">
-        &times;
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="ml-4 cursor-pointer text-xl leading-none hover:opacity-80"
+        aria-label="Dismiss">
+        ×
       </button>
     </div>
   );

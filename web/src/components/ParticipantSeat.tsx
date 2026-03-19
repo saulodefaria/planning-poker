@@ -84,6 +84,14 @@ function PaperBallThrow({ side, playAreaRef }: PaperBallThrowProps) {
   return <span ref={ballRef} className="paper-ball-throw" aria-hidden="true" />;
 }
 
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ParticipantSeat({
   participant,
   roomStatus,
@@ -102,21 +110,38 @@ export function ParticipantSeat({
   const hasActiveThrow = throwsForParticipant.length > 0;
 
   const renderVote = () => {
-    if (roomStatus === 'revealed' && participant.hasVoted) {
-      return <span className="text-violet-400 text-xl font-bold">{participant.vote}</span>;
+    if (roomStatus === "revealed") {
+      if (participant.hasVoted && participant.vote != null) {
+        return <span className="text-sm font-bold text-primary md:text-base">{participant.vote}</span>;
+      }
+      return <span className="text-xs text-on-surface-variant/50 md:text-sm">—</span>;
     }
+
     if (participant.hasVoted) {
-      return <span className="text-green-400 text-lg">&#10003;</span>;
+      return <CheckIcon className="size-5 text-primary md:size-6" />;
     }
-    return <span className="text-slate-500">-</span>;
+
+    return <div className="size-2 rounded-full bg-on-surface-variant animate-pulse" />;
   };
+
+  const cardState =
+    roomStatus === "revealed" && participant.hasVoted
+      ? "revealed"
+      : participant.hasVoted
+        ? "voted"
+        : "waiting";
+
+  const cardClass =
+    cardState === "revealed"
+      ? "border-primary/35 bg-primary/10 glow-primary"
+      : "participant-glass border-outline-variant/15";
 
   const seatContent = (
     <>
       <div
-        className={`participant-seat-card relative flex h-18 w-13 items-center justify-center overflow-visible rounded-lg border-2 border-border bg-surface text-lg font-bold ${
-          canThrowAtParticipant ? "transition-colors group-hover:border-slate-300 group-focus-visible:border-slate-300" : ""
-        }`}>
+        className={`participant-seat-card relative flex h-14 w-10 items-center justify-center overflow-visible rounded-md border text-sm font-bold transition-colors md:h-[4.25rem] md:w-[2.75rem] md:rounded-lg md:text-base ${
+          cardClass
+        } ${canThrowAtParticipant ? "group-hover:border-primary/35 group-focus-visible:border-primary/35" : ""}`}>
         <div ref={playAreaRef} className="paper-ball-stage">
           {throwsForParticipant.map((paperBallThrow) => (
             <PaperBallThrow key={paperBallThrow.id} side={paperBallThrow.side} playAreaRef={playAreaRef} />
@@ -125,9 +150,9 @@ export function ParticipantSeat({
         {renderVote()}
       </div>
       <span
-        className={`max-w-20 truncate text-center text-xs transition-colors ${
-          isCurrentUser ? "font-semibold text-blue-400" : "text-slate-400"
-        } ${canThrowAtParticipant ? "group-hover:text-slate-200 group-focus-visible:text-slate-200" : ""}`}>
+        className={`max-w-[4rem] truncate text-center text-[9px] transition-colors md:max-w-[4.75rem] md:text-xs ${
+          isCurrentUser ? "font-semibold text-primary" : "text-on-surface-variant"
+        } ${canThrowAtParticipant ? "group-hover:text-on-surface group-focus-visible:text-on-surface" : ""}`}>
         {participant.name}
       </span>
     </>
@@ -138,7 +163,7 @@ export function ParticipantSeat({
       <button
         type="button"
         onClick={() => onThrowPaperBall(participant.id)}
-        className={`participant-seat-trigger group relative flex min-w-18 flex-col items-center gap-1.5 ${
+        className={`participant-seat-trigger group relative flex min-w-10 flex-col items-center gap-1 md:min-w-[2.75rem] md:gap-1.5 ${
           hasActiveThrow ? "z-30" : "z-0"
         }`}
         title={`Throw paper ball at ${participant.name}`}
@@ -149,7 +174,9 @@ export function ParticipantSeat({
   }
 
   return (
-    <div className={`relative flex min-w-18 flex-col items-center gap-1.5 ${hasActiveThrow ? "z-30" : "z-0"}`} title={participant.name}>
+    <div
+      className={`relative flex min-w-10 flex-col items-center gap-1 md:min-w-[2.75rem] md:gap-1.5 ${hasActiveThrow ? "z-30" : "z-0"}`}
+      title={participant.name}>
       {seatContent}
     </div>
   );

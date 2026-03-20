@@ -30,6 +30,10 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "happy-dom",
       include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      setupFiles: ["./src/test/setup-tests.ts"],
+      // Default file-parallelism shares one happy-dom document across files; scope queries with
+      // `container` from render(), or keep this false so the DOM stays predictable.
+      fileParallelism: false,
     },
   };
 });

@@ -14,6 +14,7 @@ import {
   serializeRoom,
   setCurrentTicket,
   removeTicket,
+  parseJiraUrl,
 } from "../room.js";
 import { AppError } from "../errors.js";
 import type { Room } from "../types.js";
@@ -60,6 +61,32 @@ describe("validateName", () => {
 
   it("throws on too-long name", () => {
     expect(() => validateName("a".repeat(31), 30)).toThrow(AppError);
+  });
+});
+
+describe("parseJiraUrl", () => {
+  it("extracts issue key and preserves URL from a browse link", () => {
+    const url = "https://acme.atlassian.net/browse/PROJ-42";
+    expect(parseJiraUrl(url)).toEqual({ key: "PROJ-42", url });
+  });
+
+  it("normalizes the key to uppercase", () => {
+    expect(parseJiraUrl("https://acme.atlassian.net/browse/proj-99")).toEqual({
+      key: "PROJ-99",
+      url: "https://acme.atlassian.net/browse/proj-99",
+    });
+  });
+
+  it("trims surrounding whitespace before matching", () => {
+    expect(parseJiraUrl("  https://acme.atlassian.net/browse/X-1  ")).toEqual({
+      key: "X-1",
+      url: "https://acme.atlassian.net/browse/X-1",
+    });
+  });
+
+  it("returns null when the path is not a Jira browse URL", () => {
+    expect(parseJiraUrl("https://acme.atlassian.net/jira/software/projects/PROJ/boards/1")).toBeNull();
+    expect(parseJiraUrl("not a url")).toBeNull();
   });
 });
 

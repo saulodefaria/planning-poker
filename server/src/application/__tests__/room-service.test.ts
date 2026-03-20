@@ -228,4 +228,31 @@ describe("RoomService", () => {
     expect(restarted.status).toBe("voting");
     expect(restarted.round).toBe(2);
   });
+
+  it("rejects addTicket when the URL does not contain a browse issue key", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+    await expect(service.addTicket(roomId, "https://example.com/wiki")).rejects.toThrow(
+      "Could not parse a Jira issue key",
+    );
+  });
+
+  it("setCurrentTicket switches the active backlog item while voting", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+    await service.addTicket(roomId, "https://x.atlassian.net/browse/A-1");
+    await service.addTicket(roomId, "https://x.atlassian.net/browse/B-2");
+
+    const updated = await service.setCurrentTicket(roomId, "B-2");
+    expect(updated.currentTicketKey).toBe("B-2");
+  });
+
+  it("removeTicket removes an item and repoints current when the active ticket was removed", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+    await service.addTicket(roomId, "https://x.atlassian.net/browse/A-1");
+    await service.addTicket(roomId, "https://x.atlassian.net/browse/B-2");
+    await service.setCurrentTicket(roomId, "B-2");
+
+    const updated = await service.removeTicket(roomId, "B-2");
+    expect(updated.tickets.map((t) => t.key)).toEqual(["A-1"]);
+    expect(updated.currentTicketKey).toBe("A-1");
+  });
 });

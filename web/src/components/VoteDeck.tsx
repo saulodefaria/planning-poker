@@ -17,19 +17,21 @@ function CardsIcon({ className }: { className?: string }) {
 
 export function VoteDeck({ selectedVote, onVote, disabled = false }: Props) {
   return (
-    <section className="mb-5 flex flex-col gap-4 md:mb-6" data-testid="vote-deck">
+    <section
+      className="flex flex-col gap-4 md:rounded-2xl md:border md:border-outline-variant/10 md:bg-surface-container-low/50 md:p-4 lg:rounded-3xl lg:p-5"
+      data-testid="vote-deck">
       <h3 className="flex items-center gap-2 text-base font-semibold text-on-surface md:gap-3 md:text-lg">
         <CardsIcon className="size-5 text-primary md:size-6" />
         Pick your card
       </h3>
-      <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+      <div className="flex flex-wrap justify-center gap-2 md:justify-start md:gap-3">
         {VOTE_DECK.map((value) => {
           const selected = selectedVote === value;
           return (
             <button
               key={value}
               type="button"
-              className={`flex h-[4.25rem] w-[2.75rem] cursor-pointer items-center justify-center rounded-lg text-lg font-bold transition-all md:h-[5.25rem] md:w-14 md:rounded-xl md:text-xl ${
+              className={`flex h-17 w-11 cursor-pointer items-center justify-center rounded-lg text-lg font-bold transition-all md:h-[5.25rem] md:w-14 md:rounded-xl md:text-xl ${
                 selected
                   ? "-translate-y-1 border-none bg-primary text-on-primary shadow-[0_0_20px_rgba(78,222,163,0.35)] md:-translate-y-2"
                   : "border border-outline-variant/10 bg-surface-container-highest text-on-surface hover:-translate-y-1 hover:bg-surface-container-high md:hover:-translate-y-2"

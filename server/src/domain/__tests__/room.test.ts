@@ -67,12 +67,13 @@ describe("validateVote", () => {
   it("accepts valid votes", () => {
     expect(validateVote("5")).toBe("5");
     expect(validateVote("?")).toBe("?");
-    expect(validateVote("89")).toBe("89");
+    expect(validateVote("55")).toBe("55");
   });
 
   it("rejects invalid votes", () => {
     expect(() => validateVote("4")).toThrow(AppError);
     expect(() => validateVote("")).toThrow(AppError);
+    expect(() => validateVote("89")).toThrow(AppError);
     expect(() => validateVote("100")).toThrow(AppError);
   });
 });
@@ -341,8 +342,8 @@ describe("findNearestFibonacci", () => {
 
   it("handles edge cases", () => {
     expect(findNearestFibonacci(1)).toBe(1);
-    expect(findNearestFibonacci(89)).toBe(89);
-    expect(findNearestFibonacci(100)).toBe(89);
+    expect(findNearestFibonacci(89)).toBe(55);
+    expect(findNearestFibonacci(100)).toBe(55);
   });
 });
 

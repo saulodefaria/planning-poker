@@ -139,39 +139,45 @@ export function RoomPage() {
           <div className="flex flex-col gap-6 md:gap-7">
             {subtitle ? <p className="text-center text-sm text-on-surface-variant md:hidden">{subtitle}</p> : null}
 
-            <TableView
-              participants={liveRoom.participants}
-              roomStatus={liveRoom.status}
-              currentParticipantId={identity?.participantId ?? null}
-              activeThrows={activeThrows}
-              onThrowPaperBall={handleThrowPaperBall}>
-              {showCountdown ? (
-                <Countdown onComplete={handleCountdownComplete} />
-              ) : (
-                <>
-                  {liveRoom.participants.length > 0 &&
-                    (liveRoom.status !== "revealed" ? (
-                      <button
-                        type="button"
-                        className="relative flex items-center gap-2 rounded-full bg-linear-to-tr from-primary to-primary-container px-6 py-2.5 text-sm font-bold text-on-primary shadow-[0_0_24px_rgba(78,222,163,0.25)] transition-transform hover:scale-[1.02] active:scale-95 md:px-8 md:py-3 md:text-base"
-                        onClick={handleReveal}>
-                        <VisibilityIcon className="size-5" />
-                        Reveal votes
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="flex items-center gap-2 rounded-full border border-outline-variant/25 bg-surface-container-high px-6 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:border-primary/35 hover:bg-surface-container active:scale-95"
-                        onClick={restart}>
-                        <RestartIcon className="size-5 text-on-surface-variant" />
-                        Start new round
-                      </button>
-                    ))}
-                </>
-              )}
-            </TableView>
+            <div className="flex min-w-0 flex-col gap-6 md:flex-row md:items-start md:gap-6 lg:gap-8">
+              <div className="min-w-0 md:flex-[2] md:basis-0">
+                <TableView
+                  participants={liveRoom.participants}
+                  roomStatus={liveRoom.status}
+                  currentParticipantId={identity?.participantId ?? null}
+                  activeThrows={activeThrows}
+                  onThrowPaperBall={handleThrowPaperBall}>
+                  {showCountdown ? (
+                    <Countdown onComplete={handleCountdownComplete} />
+                  ) : (
+                    <>
+                      {liveRoom.participants.length > 0 &&
+                        (liveRoom.status !== "revealed" ? (
+                          <button
+                            type="button"
+                            className="relative flex items-center gap-2 rounded-full bg-linear-to-tr from-primary to-primary-container px-6 py-2.5 text-sm font-bold text-on-primary shadow-[0_0_24px_rgba(78,222,163,0.25)] transition-transform hover:scale-[1.02] active:scale-95 md:px-8 md:py-3 md:text-base"
+                            onClick={handleReveal}>
+                            <VisibilityIcon className="size-5" />
+                            Reveal votes
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 rounded-full border border-outline-variant/25 bg-surface-container-high px-6 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:border-primary/35 hover:bg-surface-container active:scale-95"
+                            onClick={restart}>
+                            <RestartIcon className="size-5 text-on-surface-variant" />
+                            Start new round
+                          </button>
+                        ))}
+                    </>
+                  )}
+                </TableView>
+              </div>
 
-            <VoteDeck selectedVote={selectedVote} onVote={handleVote} />
+              <div className="min-w-0 md:flex-1 md:basis-0">
+                <VoteDeck selectedVote={selectedVote} onVote={handleVote} />
+              </div>
+            </div>
 
             {liveRoom.status === "revealed" && liveRoom.stats ? <StatsPanel stats={liveRoom.stats} /> : null}
 

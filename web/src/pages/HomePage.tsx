@@ -56,7 +56,7 @@ export function HomePage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-surface text-on-surface">
+    <div className="relative flex min-h-screen flex-col overflow-clip bg-surface text-on-surface">
       <SiteHeader />
 
       <div className="pointer-events-none absolute top-[-10%] left-[-5%] -z-10 h-[60%] w-[40%] rounded-full bg-primary/5 blur-[120px]" />

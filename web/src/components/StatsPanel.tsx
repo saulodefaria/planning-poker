@@ -10,14 +10,20 @@ function deckOrderIndex(vote: string): number {
   return i === -1 ? 999 : i;
 }
 
-export function StatsPanel({ stats }: Props) {
-  const { sortedVotes, maxCount } = useMemo(() => {
-    const sorted = [...stats.groupedVotes].sort((a, b) => deckOrderIndex(a.vote) - deckOrderIndex(b.vote));
-    const max = Math.max(0, ...sorted.map((g) => g.count));
-    return { sortedVotes: sorted, maxCount: max };
-  }, [stats.groupedVotes]);
+function voteRowLabel(vote: string): string {
+  if (vote === "?") return "Uncertain";
+  return `${vote} Points`;
+}
 
-  const scale = maxCount > 0 ? maxCount : 1;
+export function StatsPanel({ stats }: Props) {
+  const { rows, maxCount, totalVotes } = useMemo(() => {
+    const sorted = [...stats.groupedVotes].sort(
+      (a, b) => b.count - a.count || deckOrderIndex(a.vote) - deckOrderIndex(b.vote),
+    );
+    const max = Math.max(0, ...sorted.map((g) => g.count));
+    const total = sorted.reduce((sum, g) => sum + g.count, 0);
+    return { rows: sorted, maxCount: max, totalVotes: total };
+  }, [stats.groupedVotes]);
 
   return (
     <div className="mb-5 rounded-2xl border border-outline-variant/10 bg-surface-container-low p-4 md:mb-6 md:p-6">
@@ -43,39 +49,44 @@ export function StatsPanel({ stats }: Props) {
           )}
         </div>
 
-        {sortedVotes.length > 0 ? (
+        {rows.length > 0 ? (
           <div className="min-w-0 flex-1 border-t border-outline-variant/10 pt-5 md:border-t-0 md:border-l md:pt-0 md:pl-8 lg:pl-10">
-            <h4 className="mb-4 text-sm text-on-surface-variant">Vote distribution</h4>
-            <div
-              className="flex h-36 items-end gap-1.5 sm:gap-2 md:h-40"
-              role="list"
-              aria-label="Votes per card value">
-              {sortedVotes.map(({ vote, count }) => {
-                const heightPct = (count / scale) * 100;
-                const label = `${vote}: ${count} ${count === 1 ? "vote" : "votes"}`;
+            <h4 className="mb-3 text-sm text-on-surface-variant md:mb-4">Vote distribution</h4>
+            <ul className="flex flex-col gap-3.5 md:gap-4" aria-label="Votes per card value">
+              {rows.map(({ vote, count }) => {
+                const isLeader = maxCount > 0 && count === maxCount;
+                const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                const aria = `${voteRowLabel(vote)}: ${count} ${count === 1 ? "vote" : "votes"}, ${pct} percent`;
                 return (
-                  <div
-                    key={vote}
-                    className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
-                    role="listitem"
-                    aria-label={label}>
-                    <div className="flex h-28 w-full flex-col justify-end md:h-32">
+                  <li key={vote} className="min-w-0" aria-label={aria}>
+                    <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+                      <span
+                        className={`min-w-0 truncate font-semibold tracking-tight ${
+                          isLeader ? "text-primary" : "text-on-surface-variant"
+                        }`}>
+                        {voteRowLabel(vote)}
+                      </span>
+                      <span
+                        className={`shrink-0 tabular-nums ${
+                          isLeader ? "font-medium text-primary" : "font-medium text-on-surface-variant/85"
+                        }`}>
+                        {count} {count === 1 ? "vote" : "votes"} ({pct}%)
+                      </span>
+                    </div>
+                    <div
+                      className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high/60"
+                      role="presentation">
                       <div
-                        className="w-full rounded-t-md bg-linear-to-t from-primary/50 to-primary shadow-[0_0_12px_rgba(78,222,163,0.2)] transition-[height] duration-300"
-                        style={{
-                          height: `${heightPct}%`,
-                          minHeight: count > 0 ? 4 : 0,
-                        }}
+                        className={`h-full min-w-0 rounded-full transition-[width] duration-300 ${
+                          isLeader ? "bg-primary shadow-[0_0_12px_rgba(78,222,163,0.25)]" : "bg-on-surface-variant/22"
+                        }`}
+                        style={{ width: `${pct}%`, minWidth: count > 0 ? 2 : 0 }}
                       />
                     </div>
-                    <span className="text-center text-xs font-bold tabular-nums text-on-surface">{vote}</span>
-                    <span className="text-center text-[10px] font-medium tabular-nums text-on-surface-variant/80">
-                      {count}
-                    </span>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
         ) : null}
       </div>

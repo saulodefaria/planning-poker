@@ -112,16 +112,16 @@ export function ParticipantSeat({
   const renderVote = () => {
     if (roomStatus === "revealed") {
       if (participant.hasVoted && participant.vote != null) {
-        return <span className="text-sm font-bold text-primary md:text-base">{participant.vote}</span>;
+        return <span className="text-base font-bold text-primary md:text-lg">{participant.vote}</span>;
       }
-      return <span className="text-xs text-on-surface-variant/50 md:text-sm">—</span>;
+      return <span className="text-sm text-on-surface-variant/50 md:text-base">—</span>;
     }
 
     if (participant.hasVoted) {
-      return <CheckIcon className="size-5 text-primary md:size-6" />;
+      return <CheckIcon className="size-6 text-primary md:size-7" />;
     }
 
-    return <div className="size-2 rounded-full bg-on-surface-variant animate-pulse" />;
+    return <div className="size-2.5 rounded-full bg-on-surface-variant animate-pulse md:size-3" />;
   };
 
   const cardState =
@@ -139,7 +139,7 @@ export function ParticipantSeat({
   const seatContent = (
     <>
       <div
-        className={`participant-seat-card relative flex h-14 w-10 items-center justify-center overflow-visible rounded-md border text-sm font-bold transition-colors md:h-[4.25rem] md:w-[2.75rem] md:rounded-lg md:text-base ${
+        className={`participant-seat-card relative flex h-16 w-11 items-center justify-center overflow-visible rounded-md border text-sm font-bold transition-colors md:h-20 md:w-12 md:rounded-lg md:text-base ${
           cardClass
         } ${canThrowAtParticipant ? "group-hover:border-primary/35 group-focus-visible:border-primary/35" : ""}`}>
         <div ref={playAreaRef} className="paper-ball-stage">
@@ -150,7 +150,7 @@ export function ParticipantSeat({
         {renderVote()}
       </div>
       <span
-        className={`max-w-[4rem] truncate text-center text-[9px] transition-colors md:max-w-[4.75rem] md:text-xs ${
+        className={`max-w-18 truncate text-center text-[10px] transition-colors md:max-w-22 md:text-xs ${
           isCurrentUser ? "font-semibold text-primary" : "text-on-surface-variant"
         } ${canThrowAtParticipant ? "group-hover:text-on-surface group-focus-visible:text-on-surface" : ""}`}>
         {participant.name}
@@ -163,7 +163,7 @@ export function ParticipantSeat({
       <button
         type="button"
         onClick={() => onThrowPaperBall(participant.id)}
-        className={`participant-seat-trigger group relative flex min-w-10 flex-col items-center gap-1 md:min-w-[2.75rem] md:gap-1.5 ${
+        className={`participant-seat-trigger group relative flex min-w-11 flex-col items-center gap-1.5 md:min-w-12 md:gap-2 ${
           hasActiveThrow ? "z-30" : "z-0"
         }`}
         title={`Throw paper ball at ${participant.name}`}
@@ -175,7 +175,7 @@ export function ParticipantSeat({
 
   return (
     <div
-      className={`relative flex min-w-10 flex-col items-center gap-1 md:min-w-[2.75rem] md:gap-1.5 ${hasActiveThrow ? "z-30" : "z-0"}`}
+      className={`relative flex min-w-11 flex-col items-center gap-1.5 md:min-w-12 md:gap-2 ${hasActiveThrow ? "z-30" : "z-0"}`}
       title={participant.name}>
       {seatContent}
     </div>

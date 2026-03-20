@@ -28,10 +28,7 @@ export interface PaperBallMotionState {
   rotation: number;
 }
 
-export function createPaperBallMotionState(
-  side: ThrowSide,
-  bounds: PaperBallBounds,
-): PaperBallMotionState {
+export function createPaperBallMotionState(side: ThrowSide, bounds: PaperBallBounds): PaperBallMotionState {
   const groundY = getGroundY(bounds);
   const startY = Math.max(PAPER_BALL_RADIUS_PX, groundY * START_HEIGHT_RATIO);
   const sideOffset = SIDE_ENTRY_OFFSET_PX + PAPER_BALL_RADIUS_PX;

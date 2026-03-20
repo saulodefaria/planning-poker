@@ -86,7 +86,13 @@ function PaperBallThrow({ side, playAreaRef }: PaperBallThrowProps) {
 
 function CheckIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      aria-hidden="true">
       <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -125,11 +131,7 @@ export function ParticipantSeat({
   };
 
   const cardState =
-    roomStatus === "revealed" && participant.hasVoted
-      ? "revealed"
-      : participant.hasVoted
-        ? "voted"
-        : "waiting";
+    roomStatus === "revealed" && participant.hasVoted ? "revealed" : participant.hasVoted ? "voted" : "waiting";
 
   const cardClass =
     cardState === "revealed"

@@ -108,7 +108,9 @@ function TicketRow({
       onClick={handleRowClick}
       onKeyDown={(e) => e.key === "Enter" && handleRowClick(e as unknown as React.MouseEvent)}
       className={`rounded-xl p-4 transition-colors select-none ${
-        isCurrent ? "border border-primary/25 bg-primary/5" : "border border-transparent bg-surface-container hover:bg-surface-container-high"
+        isCurrent
+          ? "border border-primary/25 bg-primary/5"
+          : "border border-transparent bg-surface-container hover:bg-surface-container-high"
       } ${canSelect || isCurrent ? "cursor-pointer" : "cursor-default"}`}>
       <div className="group flex items-center gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary/15">
@@ -132,7 +134,9 @@ function TicketRow({
               {ticket.key}
               <LinkIcon className="shrink-0 opacity-70" />
             </a>
-            {history && !expanded ? <span className="text-xs text-on-surface-variant">· round {history.round}</span> : null}
+            {history && !expanded ? (
+              <span className="text-xs text-on-surface-variant">· round {history.round}</span>
+            ) : null}
           </div>
         </div>
         <button
@@ -166,7 +170,9 @@ function VotedTicketRow({ ticket, history }: { ticket: JiraTicket; history: Tick
           {ticket.key}
           <LinkIcon className="shrink-0 opacity-70" />
         </a>
-        {history ? <span className="text-sm font-semibold text-primary tabular-nums">{fib != null ? fib : "—"}</span> : null}
+        {history ? (
+          <span className="text-sm font-semibold text-primary tabular-nums">{fib != null ? fib : "—"}</span>
+        ) : null}
         {history ? (
           <button
             type="button"
@@ -230,7 +236,9 @@ export function TicketPanel({
     <div className="flex h-full flex-col gap-4 rounded-2xl bg-surface-container p-4 md:gap-5 md:p-5">
       <div>
         <h4 className="text-base font-bold text-on-surface md:text-lg">Import ticket</h4>
-        <p className="text-xs text-on-surface-variant md:text-sm">Paste a Jira issue link to track what you&apos;re estimating.</p>
+        <p className="text-xs text-on-surface-variant md:text-sm">
+          Paste a Jira issue link to track what you&apos;re estimating.
+        </p>
       </div>
       <div className="flex flex-col gap-2 md:gap-3">
         <label className="text-[10px] font-semibold tracking-widest text-on-surface-variant uppercase">Jira URL</label>

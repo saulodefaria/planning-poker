@@ -16,21 +16,25 @@ The existing suite already follows a good pattern: test business rules close to 
 ## Testing strategy by layer
 
 `domain` tests
+
 - Cover validation, state transitions, derived values, and business errors.
 - Prefer small fixtures and direct calls to domain functions.
 - These tests should be fast and should not touch I/O.
 
 `application` tests
+
 - Treat `RoomService` as the unit under test.
 - Use an in-memory `RoomRepository` fake.
 - Assert orchestration behavior: create/load/save, name deduplication, capacity checks, serialization, and room flow.
 
 `realtime` tests
+
 - Use a real Socket.IO server plus test clients.
 - Keep persistence fake and in-memory.
 - Assert acknowledgements, broadcasts, and error events from the outside in.
 
 `infrastructure` tests
+
 - Usually not needed for every change because the Redis adapter is intentionally thin.
 - Add focused tests only if repository serialization or Redis-specific behavior becomes non-trivial.
 

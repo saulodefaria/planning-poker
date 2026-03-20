@@ -60,7 +60,6 @@ docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 planning-
 
 ## Environment Variables
 
-
 | Variable                    | Default                  | Description                      |
 | --------------------------- | ------------------------ | -------------------------------- |
 | `NODE_ENV`                  | `development`            | Environment                      |
@@ -70,7 +69,6 @@ docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 planning-
 | `REDIS_URL`                 | `redis://localhost:6379` | Redis connection URL             |
 | `ROOM_TTL_SECONDS`          | `86400`                  | Room expiry (24h)                |
 | `MAX_PARTICIPANTS_PER_ROOM` | `30`                     | Max users per room               |
-
 
 ## Architecture
 

@@ -39,9 +39,7 @@ export function StatsPanel({ stats }: Props) {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-on-surface-variant">Nearest Fibonacci</span>
-                <span className="text-2xl font-bold text-secondary tabular-nums">
-                  {stats.nearestFibonacci ?? "—"}
-                </span>
+                <span className="text-2xl font-bold text-secondary tabular-nums">{stats.nearestFibonacci ?? "—"}</span>
               </div>
             </>
           ) : (

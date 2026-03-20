@@ -17,7 +17,9 @@ describe("StatsPanel", () => {
 
     const { container } = render(<StatsPanel stats={stats} />);
     const list = within(container).getByRole("list", { name: /votes per card value/i });
-    const labels = within(list).getAllByRole("listitem").map((li) => within(li).getByText(/Points|Uncertain/).textContent);
+    const labels = within(list)
+      .getAllByRole("listitem")
+      .map((li) => within(li).getByText(/Points|Uncertain/).textContent);
 
     expect(labels[0]).toContain("5");
     expect(labels[1]).toContain("8");

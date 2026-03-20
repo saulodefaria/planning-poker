@@ -2,13 +2,7 @@ import type { LocalIdentity, RoomError, RoomState, VoteValue } from "../types";
 
 export type JoinStatus = "awaiting-name" | "restoring" | "submitting" | "joined";
 
-export type RoomPageStage =
-  | "room-unavailable"
-  | "connecting"
-  | "restoring"
-  | "join-form"
-  | "loading-room"
-  | "room";
+export type RoomPageStage = "room-unavailable" | "connecting" | "restoring" | "join-form" | "loading-room" | "room";
 
 interface RoomPageStageParams {
   activeRoom: RoomState | null;

@@ -131,4 +131,3 @@ Use this sequence for most room-related changes:
 - Do not return unserialized room data to the web client.
 - Do not couple tests or production code to console output.
 - Do not make `infrastructure/` the place where room behavior lives just because Redis is involved.
-

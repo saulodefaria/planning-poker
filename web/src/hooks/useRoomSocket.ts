@@ -66,11 +66,7 @@ export function useRoomSocket({ roomId, onError, onCountdown, onPaperBallThrown 
       }
 
       return new Promise((resolve) => {
-        socket.emit(
-          "room:join",
-          { roomId, name, participantId },
-          (ack: JoinAck) => resolve(ack),
-        );
+        socket.emit("room:join", { roomId, name, participantId }, (ack: JoinAck) => resolve(ack));
       });
     },
     [roomId],

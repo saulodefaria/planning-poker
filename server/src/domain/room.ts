@@ -1,4 +1,13 @@
-import type { Room, Participant, VoteValue, RoomStats, SerializedRoom, SerializedParticipant, JiraTicket, TicketVoteHistory } from "./types.js";
+import type {
+  Room,
+  Participant,
+  VoteValue,
+  RoomStats,
+  SerializedRoom,
+  SerializedParticipant,
+  JiraTicket,
+  TicketVoteHistory,
+} from "./types.js";
 import { VOTE_DECK, NUMERIC_VOTES } from "./types.js";
 import { AppError } from "./errors.js";
 

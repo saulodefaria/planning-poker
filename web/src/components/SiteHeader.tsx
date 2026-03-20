@@ -52,11 +52,15 @@ export function SiteHeader({ action, title, subtitle, roomContext }: Props) {
           {roomContext ? (
             <div className="hidden min-w-0 items-center gap-4 border-l border-outline-variant/20 pl-6 md:flex">
               <div className="min-w-0">
-                <span className="text-[10px] font-medium uppercase tracking-widest text-on-surface-variant">Current room</span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-on-surface-variant">
+                  Current room
+                </span>
                 <p className="truncate text-sm font-medium tracking-tight text-primary">{roomContext.roomName}</p>
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-medium uppercase tracking-widest text-on-surface-variant">Ticket</span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-on-surface-variant">
+                  Ticket
+                </span>
                 <p className="truncate font-mono text-sm font-medium tracking-tight text-on-surface">
                   {roomContext.ticketKey ?? "—"}
                 </p>
@@ -82,7 +86,9 @@ export function SiteHeader({ action, title, subtitle, roomContext }: Props) {
       {showStacked ? (
         <div className="border-t border-outline-variant/10 bg-surface-container-lowest/30">
           <div className="mx-auto max-w-7xl px-6 py-5">
-            {title ? <h1 className="text-2xl font-semibold tracking-tight text-on-surface sm:text-3xl">{title}</h1> : null}
+            {title ? (
+              <h1 className="text-2xl font-semibold tracking-tight text-on-surface sm:text-3xl">{title}</h1>
+            ) : null}
             {subtitle ? <p className="mt-1 text-on-surface-variant">{subtitle}</p> : null}
           </div>
         </div>

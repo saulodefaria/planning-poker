@@ -14,6 +14,7 @@ import {
   serializeRoom,
   setCurrentTicket,
   removeTicket,
+  parseJiraUrl,
 } from "../room.js";
 import { AppError } from "../errors.js";
 import type { Room } from "../types.js";
@@ -63,16 +64,43 @@ describe("validateName", () => {
   });
 });
 
+describe("parseJiraUrl", () => {
+  it("extracts issue key and preserves URL from a browse link", () => {
+    const url = "https://acme.atlassian.net/browse/PROJ-42";
+    expect(parseJiraUrl(url)).toEqual({ key: "PROJ-42", url });
+  });
+
+  it("normalizes the key to uppercase", () => {
+    expect(parseJiraUrl("https://acme.atlassian.net/browse/proj-99")).toEqual({
+      key: "PROJ-99",
+      url: "https://acme.atlassian.net/browse/proj-99",
+    });
+  });
+
+  it("trims surrounding whitespace before matching", () => {
+    expect(parseJiraUrl("  https://acme.atlassian.net/browse/X-1  ")).toEqual({
+      key: "X-1",
+      url: "https://acme.atlassian.net/browse/X-1",
+    });
+  });
+
+  it("returns null when the path is not a Jira browse URL", () => {
+    expect(parseJiraUrl("https://acme.atlassian.net/jira/software/projects/PROJ/boards/1")).toBeNull();
+    expect(parseJiraUrl("not a url")).toBeNull();
+  });
+});
+
 describe("validateVote", () => {
   it("accepts valid votes", () => {
     expect(validateVote("5")).toBe("5");
     expect(validateVote("?")).toBe("?");
-    expect(validateVote("89")).toBe("89");
+    expect(validateVote("55")).toBe("55");
   });
 
   it("rejects invalid votes", () => {
     expect(() => validateVote("4")).toThrow(AppError);
     expect(() => validateVote("")).toThrow(AppError);
+    expect(() => validateVote("89")).toThrow(AppError);
     expect(() => validateVote("100")).toThrow(AppError);
   });
 });
@@ -341,8 +369,8 @@ describe("findNearestFibonacci", () => {
 
   it("handles edge cases", () => {
     expect(findNearestFibonacci(1)).toBe(1);
-    expect(findNearestFibonacci(89)).toBe(89);
-    expect(findNearestFibonacci(100)).toBe(89);
+    expect(findNearestFibonacci(89)).toBe(55);
+    expect(findNearestFibonacci(100)).toBe(55);
   });
 });
 

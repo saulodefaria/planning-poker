@@ -1,30 +1,39 @@
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import path from 'path';
+import path from "path";
+import { loadEnv } from "vite";
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, "..");
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, rootDir, '');
+  const env = loadEnv(mode, rootDir, "");
 
-  const serverPort = parseInt(env.PORT || '3000', 10);
-  const vitePort = parseInt(env.VITE_PORT || '5173', 10);
+  const serverPort = parseInt(env.PORT || "3000", 10);
+  const vitePort = parseInt(env.VITE_PORT || "5173", 10);
 
   return {
     plugins: [react(), tailwindcss()],
     server: {
       port: vitePort,
       proxy: {
-        '/api': `http://localhost:${serverPort}`,
-        '/socket.io': {
+        "/api": `http://localhost:${serverPort}`,
+        "/socket.io": {
           target: `http://localhost:${serverPort}`,
           ws: true,
         },
       },
     },
     build: {
-      outDir: 'dist',
+      outDir: "dist",
+    },
+    test: {
+      environment: "happy-dom",
+      include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      setupFiles: ["./src/test/setup-tests.ts"],
+      // Default file-parallelism shares one happy-dom document across files; scope queries with
+      // `container` from render(), or keep this false so the DOM stays predictable.
+      fileParallelism: false,
     },
   };
 });

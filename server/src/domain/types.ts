@@ -1,7 +1,7 @@
-export const VOTE_DECK = ["?", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89"] as const;
+export const VOTE_DECK = ["?", "1", "2", "3", "5", "8", "13", "21", "34", "55"] as const;
 export type VoteValue = (typeof VOTE_DECK)[number];
 
-export const NUMERIC_VOTES = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89] as const;
+export const NUMERIC_VOTES = [1, 2, 3, 5, 8, 13, 21, 34, 55] as const;
 
 export type RoomStatus = "voting" | "revealed";
 

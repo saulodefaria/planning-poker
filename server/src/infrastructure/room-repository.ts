@@ -1,5 +1,5 @@
-import type Redis from 'ioredis';
-import type { Room } from '../domain/types.js';
+import type Redis from "ioredis";
+import type { Room } from "../domain/types.js";
 
 export interface RoomRepository {
   create(room: Room, ttlSeconds: number): Promise<void>;
@@ -16,7 +16,7 @@ export function createRoomRepository(redis: Redis): RoomRepository {
   return {
     async create(room, ttlSeconds) {
       const key = roomKey(room.id);
-      await redis.set(key, JSON.stringify(room), 'EX', ttlSeconds);
+      await redis.set(key, JSON.stringify(room), "EX", ttlSeconds);
     },
 
     async get(roomId) {
@@ -27,7 +27,7 @@ export function createRoomRepository(redis: Redis): RoomRepository {
 
     async save(room, ttlSeconds) {
       const key = roomKey(room.id);
-      await redis.set(key, JSON.stringify(room), 'EX', ttlSeconds);
+      await redis.set(key, JSON.stringify(room), "EX", ttlSeconds);
     },
 
     async delete(roomId) {

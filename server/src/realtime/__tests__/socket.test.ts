@@ -231,9 +231,7 @@ describe("Socket.IO handlers", () => {
     const updatedStatePromise = new Promise<any>((resolve) => {
       client2.on("room:state", (state) => {
         const aliceState = state.participants.find((participant: any) => participant.id === alice.participantId);
-        const aliceHistory = state.voteHistory[0]?.votes.find(
-          (vote: any) => vote.participantName === "Alice",
-        );
+        const aliceHistory = state.voteHistory[0]?.votes.find((vote: any) => vote.participantName === "Alice");
 
         if (state.status === "revealed" && aliceState?.vote === "13" && aliceHistory?.vote === "13") {
           resolve(state);
@@ -343,5 +341,4 @@ describe("Socket.IO handlers", () => {
     expect(["left", "right"]).toContain(event.side);
     expect(typeof event.id).toBe("string");
   });
-
 });

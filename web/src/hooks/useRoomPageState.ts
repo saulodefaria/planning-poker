@@ -25,6 +25,7 @@ export function useRoomPageState(roomId: string) {
   const lastRoundRef = useRef<number | null>(null);
   const paperBallRemovalTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId);
+  const participantIdRef = useRef<string | null>(identity?.participantId ?? null);
 
   const handleSocketError = useCallback((nextError: RoomError) => {
     if (nextError.code === "ROOM_NOT_FOUND") {
@@ -174,6 +175,10 @@ export function useRoomPageState(roomId: string) {
   }, [connected, identity, join, joinStatus, saveIdentity]);
 
   useEffect(() => {
+    participantIdRef.current = identity?.participantId ?? null;
+  }, [identity?.participantId]);
+
+  useEffect(() => {
     if (!roomState) {
       return;
     }
@@ -188,17 +193,18 @@ export function useRoomPageState(roomId: string) {
     if (roomState.status === "revealed") {
       setShowCountdown(false);
 
-      if (!identity) {
+      const pid = participantIdRef.current;
+      if (!pid) {
         return;
       }
 
-      const ownParticipant = roomState.participants.find((participant) => participant.id === identity.participantId);
+      const ownParticipant = roomState.participants.find((participant) => participant.id === pid);
       const revealedVote = ownParticipant?.vote ?? null;
 
       setSelectedVote(revealedVote);
       saveVote(revealedVote, roomState.round);
     }
-  }, [identity, roomState, saveVote]);
+  }, [roomState, saveVote]);
 
   const handleJoin = useCallback(
     async (name: string) => {

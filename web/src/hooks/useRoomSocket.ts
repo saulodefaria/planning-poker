@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import type { PaperBallThrowEvent, RoomState, RoomError, VoteValue } from "../types";
+import type { PaperBallThrowEvent, ParticipantNudgeEvent, RoomState, RoomError, VoteValue } from "../types";
 
 interface UseRoomSocketOptions {
   roomId: string;
   onError?: (error: RoomError) => void;
   onCountdown?: () => void;
   onPaperBallThrown?: (event: PaperBallThrowEvent) => void;
+  onParticipantNudged?: (event: ParticipantNudgeEvent) => void;
 }
 
 export interface JoinAck {
@@ -17,11 +18,18 @@ export interface JoinAck {
   error?: RoomError;
 }
 
-export function useRoomSocket({ roomId, onError, onCountdown, onPaperBallThrown }: UseRoomSocketOptions) {
+export function useRoomSocket({
+  roomId,
+  onError,
+  onCountdown,
+  onPaperBallThrown,
+  onParticipantNudged,
+}: UseRoomSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
   const onErrorRef = useRef(onError);
   const onCountdownRef = useRef(onCountdown);
   const onPaperBallThrownRef = useRef(onPaperBallThrown);
+  const onParticipantNudgedRef = useRef(onParticipantNudged);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [connected, setConnected] = useState(false);
 
@@ -29,7 +37,8 @@ export function useRoomSocket({ roomId, onError, onCountdown, onPaperBallThrown 
     onErrorRef.current = onError;
     onCountdownRef.current = onCountdown;
     onPaperBallThrownRef.current = onPaperBallThrown;
-  }, [onCountdown, onError, onPaperBallThrown]);
+    onParticipantNudgedRef.current = onParticipantNudged;
+  }, [onCountdown, onError, onPaperBallThrown, onParticipantNudged]);
 
   useEffect(() => {
     setRoomState(null);
@@ -44,6 +53,7 @@ export function useRoomSocket({ roomId, onError, onCountdown, onPaperBallThrown 
     socket.on("room:error", (error: RoomError) => onErrorRef.current?.(error));
     socket.on("room:countdown", () => onCountdownRef.current?.());
     socket.on("room:paper-ball-thrown", (event: PaperBallThrowEvent) => onPaperBallThrownRef.current?.(event));
+    socket.on("room:participant-nudged", (event: ParticipantNudgeEvent) => onParticipantNudgedRef.current?.(event));
 
     return () => {
       socket.disconnect();

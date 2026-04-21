@@ -64,6 +64,15 @@ export interface PaperBallThrowEvent {
   createdAt: string;
 }
 
+export interface ParticipantNudgeEvent {
+  id: string;
+  roomId: string;
+  fromParticipantId: string;
+  fromParticipantName: string;
+  toParticipantId: string;
+  createdAt: string;
+}
+
 export interface LocalIdentity {
   participantId: string;
   name: string;

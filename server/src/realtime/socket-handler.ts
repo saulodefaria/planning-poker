@@ -43,6 +43,20 @@ function socketRoomName(roomId: string): string {
   return `room:${roomId}`;
 }
 
+function participantSocketRoomName(roomId: string, participantId: string): string {
+  return `room:${roomId}:participant:${participantId}`;
+}
+
+function clearParticipantSocketRooms(socket: Socket, roomId: string): void {
+  const participantRoomPrefix = participantSocketRoomName(roomId, "");
+
+  for (const joinedRoom of socket.rooms) {
+    if (joinedRoom.startsWith(participantRoomPrefix)) {
+      socket.leave(joinedRoom);
+    }
+  }
+}
+
 export function registerSocketHandlers(io: Server, roomService: RoomService): void {
   const countdownTimers = new Map<string, NodeJS.Timeout>();
 
@@ -57,6 +71,8 @@ export function registerSocketHandlers(io: Server, roomService: RoomService): vo
 
         const socketRoom = socketRoomName(payload.roomId);
         await socket.join(socketRoom);
+        clearParticipantSocketRooms(socket, payload.roomId);
+        await socket.join(participantSocketRoomName(payload.roomId, result.participantId));
 
         if (ack) {
           ack({
@@ -149,20 +165,32 @@ export function registerSocketHandlers(io: Server, roomService: RoomService): vo
         }
 
         const room = await roomService.get(payload.roomId);
-        const fromExists = room.participants.some((participant) => participant.id === payload.fromParticipantId);
-        const toExists = room.participants.some((participant) => participant.id === payload.toParticipantId);
+        const fromParticipant = room.participants.find((participant) => participant.id === payload.fromParticipantId);
+        const toParticipant = room.participants.find((participant) => participant.id === payload.toParticipantId);
 
-        if (!fromExists || !toExists || payload.fromParticipantId === payload.toParticipantId) {
+        if (!fromParticipant || !toParticipant || payload.fromParticipantId === payload.toParticipantId) {
           throw new AppError("INVALID_STATE", "Invalid throw target");
         }
 
+        const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const createdAt = new Date().toISOString();
+
         io.to(socketRoomName(payload.roomId)).emit("room:paper-ball-thrown", {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          id: eventId,
           roomId: payload.roomId,
           fromParticipantId: payload.fromParticipantId,
           toParticipantId: payload.toParticipantId,
           side: Math.random() > 0.5 ? "left" : "right",
-          createdAt: new Date().toISOString(),
+          createdAt,
+        });
+
+        io.to(participantSocketRoomName(payload.roomId, toParticipant.id)).emit("room:participant-nudged", {
+          id: eventId,
+          roomId: payload.roomId,
+          fromParticipantId: fromParticipant.id,
+          fromParticipantName: fromParticipant.name,
+          toParticipantId: toParticipant.id,
+          createdAt,
         });
       } catch (err) {
         emitError(socket, err);

@@ -152,7 +152,7 @@ export function ParticipantSeat({
         {renderVote()}
       </div>
       <span
-        className={`max-w-18 truncate text-center text-[10px] transition-colors md:max-w-22 md:text-xs ${
+        className={`max-w-[11ch] text-center text-[10px] leading-tight wrap-anywhere transition-colors md:max-w-[13ch] md:text-xs ${
           isCurrentUser ? "font-semibold text-primary" : "text-on-surface-variant"
         } ${canThrowAtParticipant ? "group-hover:text-on-surface group-focus-visible:text-on-surface" : ""}`}>
         {participant.name}

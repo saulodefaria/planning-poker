@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocalRoomIdentity } from "./useLocalRoomIdentity";
+import { useParticipantNudge } from "./useParticipantNudge";
 import { useRoomSocket } from "./useRoomSocket";
 import { getRoom, toRoomError } from "../services/room-api";
 import { loadRoomIdentity } from "../services/room-identity-storage";
@@ -26,6 +27,7 @@ export function useRoomPageState(roomId: string) {
   const paperBallRemovalTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { identity, saveIdentity, saveVote } = useLocalRoomIdentity(roomId);
   const participantIdRef = useRef<string | null>(identity?.participantId ?? null);
+  const { activeNudge: activeParticipantNudge, dismissNudge, receiveNudge } = useParticipantNudge();
 
   const handleSocketError = useCallback((nextError: RoomError) => {
     if (nextError.code === "ROOM_NOT_FOUND") {
@@ -66,6 +68,7 @@ export function useRoomPageState(roomId: string) {
     onError: handleSocketError,
     onCountdown: handleCountdown,
     onPaperBallThrown: handlePaperBallThrown,
+    onParticipantNudged: receiveNudge,
   });
 
   useEffect(() => {
@@ -77,6 +80,7 @@ export function useRoomPageState(roomId: string) {
     setSelectedVote(null);
     setShowCountdown(false);
     setActiveThrows([]);
+    dismissNudge();
     lastRoundRef.current = null;
 
     return () => {
@@ -86,7 +90,7 @@ export function useRoomPageState(roomId: string) {
 
       paperBallRemovalTimeoutsRef.current = [];
     };
-  }, [roomId]);
+  }, [dismissNudge, roomId]);
 
   useEffect(() => {
     if (connected) {
@@ -290,6 +294,7 @@ export function useRoomPageState(roomId: string) {
 
   return {
     activeRoom,
+    activeParticipantNudge,
     activeThrows,
     addTicket,
     clearError: () => setError(null),

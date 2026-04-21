@@ -26,6 +26,7 @@ const revealedRoom: RoomState = {
 
 function mockRoomPageState(overrides: Record<string, unknown> = {}) {
   return {
+    activeParticipantNudge: null,
     activeThrows: [],
     addTicket: vi.fn(),
     clearError: vi.fn(),

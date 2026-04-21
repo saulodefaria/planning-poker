@@ -5,6 +5,7 @@ import { VoteDeck } from "../components/VoteDeck";
 import { StatsPanel } from "../components/StatsPanel";
 import { TicketPanel } from "../components/TicketPanel";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { ParticipantWaitingToast } from "../components/ParticipantWaitingToast";
 import { ShareLink } from "../components/ShareLink";
 import { Countdown } from "../components/Countdown";
 import { SiteHeader } from "../components/SiteHeader";
@@ -39,6 +40,7 @@ export function RoomPage() {
 
   const {
     activeRoom,
+    activeParticipantNudge,
     activeThrows,
     addTicket,
     clearError,
@@ -105,6 +107,8 @@ export function RoomPage() {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface">
+      {activeParticipantNudge ? <ParticipantWaitingToast nudge={activeParticipantNudge} /> : null}
+
       <SiteHeader
         roomContext={
           showRoomContext && activeRoom

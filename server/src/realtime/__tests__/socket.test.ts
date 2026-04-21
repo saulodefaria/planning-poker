@@ -322,10 +322,60 @@ describe("Socket.IO handlers", () => {
       client2.emit("room:join", { roomId, name: "Bob" }, resolve);
     });
 
-    const throwPromise = new Promise<any>((resolve) => {
-      client2.on("room:paper-ball-thrown", (event) => {
-        resolve(event);
-      });
+    const eventsPromise = Promise.all([
+      new Promise<any>((resolve) => {
+        client1.once("room:paper-ball-thrown", resolve);
+      }),
+      new Promise<any>((resolve) => {
+        client2.once("room:paper-ball-thrown", resolve);
+      }),
+    ]);
+
+    client1.emit("room:throw-paper-ball", {
+      roomId,
+      fromParticipantId: alice.participantId,
+      toParticipantId: bob.participantId,
+    });
+
+    const [senderEvent, targetEvent] = await eventsPromise;
+
+    for (const event of [senderEvent, targetEvent]) {
+      expect(event.roomId).toBe(roomId);
+      expect(event.fromParticipantId).toBe(alice.participantId);
+      expect(event.toParticipantId).toBe(bob.participantId);
+      expect(["left", "right"]).toContain(event.side);
+      expect(typeof event.id).toBe("string");
+    }
+  });
+
+  it("participant nudge is sent only to the clicked participant", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+
+    const client1 = createClient();
+    const client2 = createClient();
+    const client3 = createClient();
+    await Promise.all([waitForConnect(client1), waitForConnect(client2), waitForConnect(client3)]);
+
+    const alice = await new Promise<any>((resolve) => {
+      client1.emit("room:join", { roomId, name: "Alice" }, resolve);
+    });
+    const bob = await new Promise<any>((resolve) => {
+      client2.emit("room:join", { roomId, name: "Bob" }, resolve);
+    });
+    await new Promise<any>((resolve) => {
+      client3.emit("room:join", { roomId, name: "Carol" }, resolve);
+    });
+
+    const bobNudgePromise = new Promise<any>((resolve) => {
+      client2.once("room:participant-nudged", resolve);
+    });
+    const aliceNudgePromise = new Promise<string>((resolve) => {
+      client1.once("room:participant-nudged", () => resolve("received"));
+      setTimeout(() => resolve("timeout"), 100);
+    });
+    const carolNudgePromise = new Promise<string>((resolve) => {
+      client3.once("room:participant-nudged", () => resolve("received"));
+      setTimeout(() => resolve("timeout"), 100);
     });
 
     client1.emit("room:throw-paper-ball", {
@@ -334,11 +384,17 @@ describe("Socket.IO handlers", () => {
       toParticipantId: bob.participantId,
     });
 
-    const event = await throwPromise;
-    expect(event.roomId).toBe(roomId);
-    expect(event.fromParticipantId).toBe(alice.participantId);
-    expect(event.toParticipantId).toBe(bob.participantId);
-    expect(["left", "right"]).toContain(event.side);
-    expect(typeof event.id).toBe("string");
+    const [bobEvent, aliceResult, carolResult] = await Promise.all([
+      bobNudgePromise,
+      aliceNudgePromise,
+      carolNudgePromise,
+    ]);
+
+    expect(bobEvent.roomId).toBe(roomId);
+    expect(bobEvent.fromParticipantId).toBe(alice.participantId);
+    expect(bobEvent.fromParticipantName).toBe("Alice");
+    expect(bobEvent.toParticipantId).toBe(bob.participantId);
+    expect(aliceResult).toBe("timeout");
+    expect(carolResult).toBe("timeout");
   });
 });

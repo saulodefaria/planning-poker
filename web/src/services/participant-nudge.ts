@@ -1,0 +1,1 @@
+export const WAITING_NUDGE_VISIBLE_MS = 5000;

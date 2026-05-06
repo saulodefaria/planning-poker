@@ -175,3 +175,45 @@ html::-webkit-scrollbar-thumb {
   will-change: transform, opacity;
   z-index: 21;
 }
+
+@keyframes timer-last-minute-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+  }
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 8px 28px rgba(251, 191, 36, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+  }
+}
+
+@keyframes timer-ended-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 8px 26px rgba(255, 92, 92, 0.28);
+  }
+  35% {
+    transform: scale(1.03);
+    box-shadow: 0 8px 34px rgba(255, 92, 92, 0.52);
+  }
+  70% {
+    transform: scale(0.99);
+    box-shadow: 0 8px 22px rgba(255, 92, 92, 0.24);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 8px 26px rgba(255, 92, 92, 0.3);
+  }
+}
+
+.timer-last-minute-alert {
+  animation: timer-last-minute-pulse 1100ms ease-in-out infinite;
+}
+
+.timer-ended-alert {
+  animation: timer-ended-pulse 420ms ease-in-out 4;
+}

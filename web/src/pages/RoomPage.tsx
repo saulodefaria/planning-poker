@@ -9,6 +9,7 @@ import { ParticipantWaitingToast } from "../components/ParticipantWaitingToast";
 import { ShareLink } from "../components/ShareLink";
 import { Countdown } from "../components/Countdown";
 import { SiteHeader } from "../components/SiteHeader";
+import { RoomTimer } from "../components/RoomTimer";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useRoomPageState } from "../hooks/useRoomPageState";
 
@@ -119,6 +120,7 @@ export function RoomPage() {
               }
             : undefined
         }
+        roomTimer={showRoomContext ? <RoomTimer /> : undefined}
         title={undefined}
         subtitle={undefined}
         action={headerAction}

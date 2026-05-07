@@ -63,6 +63,11 @@ export function useRoomPageState(roomId: string) {
     addTicket,
     removeTicket,
     setCurrentTicket,
+    playTimer,
+    pauseTimer,
+    cancelTimer,
+    addTimerMinute,
+    subTimerMinute,
   } = useRoomSocket({
     roomId,
     onError: handleSocketError,
@@ -314,6 +319,11 @@ export function useRoomPageState(roomId: string) {
     roomState,
     selectedVote,
     setCurrentTicket,
+    playTimer,
+    pauseTimer,
+    cancelTimer,
+    addTimerMinute,
+    subTimerMinute,
     showCountdown,
     subtitle,
   };

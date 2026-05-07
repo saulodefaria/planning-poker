@@ -59,6 +59,56 @@ function clearParticipantSocketRooms(socket: Socket, roomId: string): void {
 
 export function registerSocketHandlers(io: Server, roomService: RoomService): void {
   const countdownTimers = new Map<string, NodeJS.Timeout>();
+  const roomTimerEndTimers = new Map<string, NodeJS.Timeout>();
+  const roomTimerResetTimers = new Map<string, NodeJS.Timeout>();
+  const ROOM_TIMER_ENDED_RESET_DELAY_MS = 3000;
+
+  const clearRoomTimerSchedules = (roomId: string) => {
+    const endTimer = roomTimerEndTimers.get(roomId);
+    if (endTimer) {
+      clearTimeout(endTimer);
+      roomTimerEndTimers.delete(roomId);
+    }
+
+    const resetTimer = roomTimerResetTimers.get(roomId);
+    if (resetTimer) {
+      clearTimeout(resetTimer);
+      roomTimerResetTimers.delete(roomId);
+    }
+  };
+
+  const scheduleRoomTimer = (roomId: string, endsAtMs: number | null, status: string) => {
+    clearRoomTimerSchedules(roomId);
+
+    if (status !== "running" || endsAtMs === null) {
+      return;
+    }
+
+    const msUntilEnd = Math.max(0, endsAtMs - Date.now());
+    const endTimer = setTimeout(async () => {
+      roomTimerEndTimers.delete(roomId);
+      try {
+        const endedRoom = await roomService.finishTimer(roomId);
+        io.to(socketRoomName(roomId)).emit("room:state", endedRoom);
+
+        const resetTimer = setTimeout(async () => {
+          roomTimerResetTimers.delete(roomId);
+          try {
+            const resetRoom = await roomService.cancelTimer(roomId);
+            io.to(socketRoomName(roomId)).emit("room:state", resetRoom);
+          } catch {
+            // Room may have expired
+          }
+        }, ROOM_TIMER_ENDED_RESET_DELAY_MS);
+
+        roomTimerResetTimers.set(roomId, resetTimer);
+      } catch {
+        // Room may have expired
+      }
+    }, msUntilEnd);
+
+    roomTimerEndTimers.set(roomId, endTimer);
+  };
 
   io.on("connection", (socket: Socket) => {
     socket.on("room:join", async (payload: JoinPayload, ack?: (res: unknown) => void) => {
@@ -227,6 +277,69 @@ export function registerSocketHandlers(io: Server, roomService: RoomService): vo
           throw new AppError("ROOM_NOT_FOUND", "Room ID is required");
         }
         const room = await roomService.setCurrentTicket(payload.roomId, payload.key ?? null);
+        io.to(socketRoomName(payload.roomId)).emit("room:state", room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on("room-timer:play", async (payload: RoomActionPayload) => {
+      try {
+        if (!payload.roomId) {
+          throw new AppError("ROOM_NOT_FOUND", "Room ID is required");
+        }
+        const room = await roomService.playTimer(payload.roomId);
+        scheduleRoomTimer(payload.roomId, room.timer.endsAtMs, room.timer.status);
+        io.to(socketRoomName(payload.roomId)).emit("room:state", room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on("room-timer:pause", async (payload: RoomActionPayload) => {
+      try {
+        if (!payload.roomId) {
+          throw new AppError("ROOM_NOT_FOUND", "Room ID is required");
+        }
+        const room = await roomService.pauseTimer(payload.roomId);
+        scheduleRoomTimer(payload.roomId, room.timer.endsAtMs, room.timer.status);
+        io.to(socketRoomName(payload.roomId)).emit("room:state", room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on("room-timer:cancel", async (payload: RoomActionPayload) => {
+      try {
+        if (!payload.roomId) {
+          throw new AppError("ROOM_NOT_FOUND", "Room ID is required");
+        }
+        const room = await roomService.cancelTimer(payload.roomId);
+        clearRoomTimerSchedules(payload.roomId);
+        io.to(socketRoomName(payload.roomId)).emit("room:state", room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on("room-timer:add-minute", async (payload: RoomActionPayload) => {
+      try {
+        if (!payload.roomId) {
+          throw new AppError("ROOM_NOT_FOUND", "Room ID is required");
+        }
+        const room = await roomService.addTimerMinute(payload.roomId);
+        io.to(socketRoomName(payload.roomId)).emit("room:state", room);
+      } catch (err) {
+        emitError(socket, err);
+      }
+    });
+
+    socket.on("room-timer:sub-minute", async (payload: RoomActionPayload) => {
+      try {
+        if (!payload.roomId) {
+          throw new AppError("ROOM_NOT_FOUND", "Room ID is required");
+        }
+        const room = await roomService.subTimerMinute(payload.roomId);
         io.to(socketRoomName(payload.roomId)).emit("room:state", room);
       } catch (err) {
         emitError(socket, err);

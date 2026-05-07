@@ -13,6 +13,8 @@ interface Props {
   subtitle?: string;
   /** When set, shows in-room meta in the top bar (desktop). */
   roomContext?: RoomHeaderContext;
+  /** Inline room timer; shown beside room meta when {@link roomContext} is set. */
+  roomTimer?: ReactNode;
 }
 
 function GitHubLink({ className }: { className?: string }) {
@@ -38,7 +40,7 @@ function GroupIcon({ className }: { className?: string }) {
   );
 }
 
-export function SiteHeader({ action, title, subtitle, roomContext }: Props) {
+export function SiteHeader({ action, title, subtitle, roomContext, roomTimer }: Props) {
   const showStacked = Boolean(title || subtitle);
 
   return (
@@ -65,6 +67,7 @@ export function SiteHeader({ action, title, subtitle, roomContext }: Props) {
                   {roomContext.ticketKey ?? "—"}
                 </p>
               </div>
+              {roomTimer ? <div className="shrink-0 border-l border-outline-variant/15 pl-4">{roomTimer}</div> : null}
             </div>
           ) : null}
         </div>

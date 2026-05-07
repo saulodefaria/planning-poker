@@ -15,6 +15,12 @@ import {
   setCurrentTicket,
   removeTicket,
   parseJiraUrl,
+  addRoomTimerMinute,
+  cancelRoomTimer,
+  finishRoomTimer,
+  pauseRoomTimer,
+  playRoomTimer,
+  subRoomTimerMinute,
 } from "../room.js";
 import { AppError } from "../errors.js";
 import type { Room } from "../types.js";
@@ -397,5 +403,57 @@ describe("serializeRoom", () => {
 
     expect(serialized.participants[0].vote).toBe("5");
     expect(serialized.stats).not.toBeNull();
+  });
+
+  it("includes server timestamp and running timer snapshot", () => {
+    const room = createTestRoom();
+    const now = Date.now();
+    playRoomTimer(room, now);
+    room.timer.endsAtMs = now + 90_000;
+
+    const serialized = serializeRoom(room);
+
+    expect(typeof serialized.serverNowMs).toBe("number");
+    expect(serialized.timer.status).toBe("running");
+    expect(serialized.timer.remainingSeconds).toBeGreaterThan(0);
+  });
+});
+
+describe("room timer actions", () => {
+  it("plays from idle and computes end timestamp", () => {
+    const room = createTestRoom();
+    playRoomTimer(room, 10_000);
+    expect(room.timer.status).toBe("running");
+    expect(room.timer.endsAtMs).toBe(10_000 + 600_000);
+  });
+
+  it("pauses running timer using server time", () => {
+    const room = createTestRoom();
+    playRoomTimer(room, 10_000);
+    pauseRoomTimer(room, 70_000);
+    expect(room.timer.status).toBe("paused");
+    expect(room.timer.remainingSeconds).toBe(540);
+    expect(room.timer.endsAtMs).toBeNull();
+  });
+
+  it("adjusts minutes only while idle or paused", () => {
+    const room = createTestRoom();
+    addRoomTimerMinute(room);
+    expect(room.timer.presetSeconds).toBe(660);
+    subRoomTimerMinute(room);
+    expect(room.timer.presetSeconds).toBe(600);
+
+    playRoomTimer(room);
+    addRoomTimerMinute(room);
+    expect(room.timer.presetSeconds).toBe(600);
+  });
+
+  it("finishes and resets timer", () => {
+    const room = createTestRoom();
+    playRoomTimer(room);
+    finishRoomTimer(room);
+    expect(room.timer).toMatchObject({ status: "ended", remainingSeconds: 0, endsAtMs: null });
+    cancelRoomTimer(room);
+    expect(room.timer).toMatchObject({ status: "idle", presetSeconds: 600, remainingSeconds: 600, endsAtMs: null });
   });
 });

@@ -14,6 +14,13 @@ const room: RoomState = {
   id: "room-123",
   name: "Sprint Planning",
   status: "voting",
+  timer: {
+    status: "idle",
+    presetSeconds: 600,
+    remainingSeconds: 600,
+    endsAtMs: null,
+  },
+  serverNowMs: Date.now(),
   round: 3,
   participants: [
     {

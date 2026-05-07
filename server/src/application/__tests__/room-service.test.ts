@@ -229,6 +229,22 @@ describe("RoomService", () => {
     expect(restarted.round).toBe(2);
   });
 
+  it("updates timer state through service methods", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+
+    const running = await service.playTimer(roomId);
+    expect(running.timer.status).toBe("running");
+    expect(running.timer.endsAtMs).not.toBeNull();
+
+    const paused = await service.pauseTimer(roomId);
+    expect(paused.timer.status).toBe("paused");
+    expect(paused.timer.endsAtMs).toBeNull();
+
+    const idle = await service.cancelTimer(roomId);
+    expect(idle.timer.status).toBe("idle");
+    expect(idle.timer.presetSeconds).toBe(600);
+  });
+
   it("rejects addTicket when the URL does not contain a browse issue key", async () => {
     const { roomId } = await service.create(ROOM_NAME);
     await expect(service.addTicket(roomId, "https://example.com/wiki")).rejects.toThrow(

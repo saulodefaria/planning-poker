@@ -129,6 +129,26 @@ export function useRoomSocket({
     [roomId],
   );
 
+  const playTimer = useCallback(() => {
+    socketRef.current?.emit("room-timer:play", { roomId });
+  }, [roomId]);
+
+  const pauseTimer = useCallback(() => {
+    socketRef.current?.emit("room-timer:pause", { roomId });
+  }, [roomId]);
+
+  const cancelTimer = useCallback(() => {
+    socketRef.current?.emit("room-timer:cancel", { roomId });
+  }, [roomId]);
+
+  const addTimerMinute = useCallback(() => {
+    socketRef.current?.emit("room-timer:add-minute", { roomId });
+  }, [roomId]);
+
+  const subTimerMinute = useCallback(() => {
+    socketRef.current?.emit("room-timer:sub-minute", { roomId });
+  }, [roomId]);
+
   return {
     roomState,
     connected,
@@ -141,5 +161,10 @@ export function useRoomSocket({
     addTicket,
     removeTicket,
     setCurrentTicket,
+    playTimer,
+    pauseTimer,
+    cancelTimer,
+    addTimerMinute,
+    subTimerMinute,
   };
 }

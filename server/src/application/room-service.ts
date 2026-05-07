@@ -18,6 +18,12 @@ import {
   removeTicket,
   setCurrentTicket,
   ensureCurrentTicketIfAny,
+  playRoomTimer,
+  pauseRoomTimer,
+  cancelRoomTimer,
+  addRoomTimerMinute,
+  subRoomTimerMinute,
+  finishRoomTimer,
 } from "../domain/room.js";
 import { AppError } from "../domain/errors.js";
 
@@ -157,6 +163,48 @@ export class RoomService {
     setCurrentTicket(room, key);
     await this.repo.save(room, this.config.roomTtlSeconds);
     console.log(`[Room] Current ticket set: ${key ?? "none"} in ${roomId}`);
+    return serializeRoom(room);
+  }
+
+  async playTimer(roomId: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    playRoomTimer(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    return serializeRoom(room);
+  }
+
+  async pauseTimer(roomId: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    pauseRoomTimer(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    return serializeRoom(room);
+  }
+
+  async cancelTimer(roomId: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    cancelRoomTimer(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    return serializeRoom(room);
+  }
+
+  async addTimerMinute(roomId: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    addRoomTimerMinute(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    return serializeRoom(room);
+  }
+
+  async subTimerMinute(roomId: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    subRoomTimerMinute(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
+    return serializeRoom(room);
+  }
+
+  async finishTimer(roomId: string): Promise<SerializedRoom> {
+    const room = await this.getRoom(roomId);
+    finishRoomTimer(room);
+    await this.repo.save(room, this.config.roomTtlSeconds);
     return serializeRoom(room);
   }
 

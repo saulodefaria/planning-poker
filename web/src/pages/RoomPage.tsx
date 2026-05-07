@@ -9,6 +9,7 @@ import { ParticipantWaitingToast } from "../components/ParticipantWaitingToast";
 import { ShareLink } from "../components/ShareLink";
 import { Countdown } from "../components/Countdown";
 import { SiteHeader } from "../components/SiteHeader";
+import { RoomTimer } from "../components/RoomTimer";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useRoomPageState } from "../hooks/useRoomPageState";
 
@@ -54,9 +55,14 @@ export function RoomPage() {
     identity,
     joinStatus,
     pageStage,
+    pauseTimer,
+    playTimer,
     removeTicket,
     restart,
     roomState,
+    cancelTimer,
+    addTimerMinute,
+    subTimerMinute,
     selectedVote,
     setCurrentTicket,
     showCountdown,
@@ -118,6 +124,19 @@ export function RoomPage() {
                 participantCount: liveRoom.participants.length,
               }
             : undefined
+        }
+        roomTimer={
+          showRoomContext ? (
+            <RoomTimer
+              timer={liveRoom.timer}
+              serverNowMs={liveRoom.serverNowMs}
+              onPlay={playTimer}
+              onPause={pauseTimer}
+              onCancel={cancelTimer}
+              onAddMinute={addTimerMinute}
+              onSubMinute={subTimerMinute}
+            />
+          ) : undefined
         }
         title={undefined}
         subtitle={undefined}

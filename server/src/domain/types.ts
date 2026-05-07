@@ -5,6 +5,15 @@ export const NUMERIC_VOTES = [1, 2, 3, 5, 8, 13, 21, 34, 55] as const;
 
 export type RoomStatus = "voting" | "revealed";
 
+export type RoomTimerStatus = "idle" | "running" | "paused" | "ended";
+
+export interface RoomTimer {
+  status: RoomTimerStatus;
+  presetSeconds: number;
+  remainingSeconds: number;
+  endsAtMs: number | null;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -37,6 +46,7 @@ export interface Room {
   id: string;
   name: string;
   status: RoomStatus;
+  timer: RoomTimer;
   round: number;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +74,8 @@ export interface SerializedRoom {
   id: string;
   name: string;
   status: RoomStatus;
+  timer: RoomTimer;
+  serverNowMs: number;
   round: number;
   participants: SerializedParticipant[];
   stats: RoomStats | null;

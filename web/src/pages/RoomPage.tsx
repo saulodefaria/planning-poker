@@ -55,9 +55,14 @@ export function RoomPage() {
     identity,
     joinStatus,
     pageStage,
+    pauseTimer,
+    playTimer,
     removeTicket,
     restart,
     roomState,
+    cancelTimer,
+    addTimerMinute,
+    subTimerMinute,
     selectedVote,
     setCurrentTicket,
     showCountdown,
@@ -120,7 +125,19 @@ export function RoomPage() {
               }
             : undefined
         }
-        roomTimer={showRoomContext ? <RoomTimer /> : undefined}
+        roomTimer={
+          showRoomContext ? (
+            <RoomTimer
+              timer={liveRoom.timer}
+              serverNowMs={liveRoom.serverNowMs}
+              onPlay={playTimer}
+              onPause={pauseTimer}
+              onCancel={cancelTimer}
+              onAddMinute={addTimerMinute}
+              onSubMinute={subTimerMinute}
+            />
+          ) : undefined
+        }
         title={undefined}
         subtitle={undefined}
         action={headerAction}

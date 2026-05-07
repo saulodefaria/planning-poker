@@ -12,16 +12,10 @@ export interface RoomTimerModel {
   status: RoomTimerStatus;
   presetSeconds: number;
   remainingSeconds: number;
+  endsAtMs: number | null;
 }
 
-export type RoomTimerAction =
-  | { type: "TICK" }
-  | { type: "PLAY" }
-  | { type: "PAUSE" }
-  | { type: "CANCEL" }
-  | { type: "RESET_TO_DEFAULT" }
-  | { type: "ADD_MINUTE" }
-  | { type: "SUB_MINUTE" };
+type RoomTimerDisplayModel = Pick<RoomTimerModel, "status" | "presetSeconds" | "remainingSeconds">;
 
 export function defaultPresetSeconds(): number {
   return DEFAULT_TIMER_MINUTES * SECONDS_PER_MINUTE;
@@ -29,7 +23,7 @@ export function defaultPresetSeconds(): number {
 
 export function initialRoomTimer(): RoomTimerModel {
   const preset = defaultPresetSeconds();
-  return { status: "idle", presetSeconds: preset, remainingSeconds: preset };
+  return { status: "idle", presetSeconds: preset, remainingSeconds: preset, endsAtMs: null };
 }
 
 export function formatTimerMmSs(totalSeconds: number): string {
@@ -39,88 +33,27 @@ export function formatTimerMmSs(totalSeconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-export function reduceRoomTimer(state: RoomTimerModel, action: RoomTimerAction): RoomTimerModel {
-  const minSeconds = MIN_TIMER_MINUTES * SECONDS_PER_MINUTE;
-  const maxSeconds = MAX_TIMER_MINUTES * SECONDS_PER_MINUTE;
-
-  switch (action.type) {
-    case "TICK": {
-      if (state.status !== "running") {
-        return state;
-      }
-
-      if (state.remainingSeconds <= 1) {
-        return { ...state, status: "ended", remainingSeconds: 0 };
-      }
-
-      return { ...state, remainingSeconds: state.remainingSeconds - 1 };
-    }
-    case "PLAY": {
-      if (state.status === "running") {
-        return state;
-      }
-
-      if (state.status === "ended") {
-        return state;
-      }
-
-      if (state.status === "idle") {
-        return { ...state, status: "running", remainingSeconds: state.presetSeconds };
-      }
-
-      return { ...state, status: "running" };
-    }
-    case "PAUSE": {
-      if (state.status !== "running") {
-        return state;
-      }
-
-      return { ...state, status: "paused" };
-    }
-    case "CANCEL": {
-      const preset = defaultPresetSeconds();
-      return { status: "idle", presetSeconds: preset, remainingSeconds: preset };
-    }
-    case "RESET_TO_DEFAULT": {
-      const preset = defaultPresetSeconds();
-      return { status: "idle", presetSeconds: preset, remainingSeconds: preset };
-    }
-    case "ADD_MINUTE": {
-      if (state.status === "running" || state.status === "ended") {
-        return state;
-      }
-
-      if (state.status === "idle") {
-        const nextPreset = Math.min(state.presetSeconds + SECONDS_PER_MINUTE, maxSeconds);
-        return { ...state, presetSeconds: nextPreset, remainingSeconds: nextPreset };
-      }
-
-      const nextRemaining = Math.min(state.remainingSeconds + SECONDS_PER_MINUTE, maxSeconds);
-      return { ...state, remainingSeconds: nextRemaining };
-    }
-    case "SUB_MINUTE": {
-      if (state.status === "running" || state.status === "ended") {
-        return state;
-      }
-
-      if (state.status === "idle") {
-        const nextPreset = Math.max(state.presetSeconds - SECONDS_PER_MINUTE, minSeconds);
-        return { ...state, presetSeconds: nextPreset, remainingSeconds: nextPreset };
-      }
-
-      const nextRemaining = Math.max(state.remainingSeconds - SECONDS_PER_MINUTE, minSeconds);
-      return { ...state, remainingSeconds: nextRemaining };
-    }
-    default:
-      return state;
+export function getDisplayTimerState(
+  state: RoomTimerModel,
+  estimatedServerNowMs: number,
+): RoomTimerDisplayModel {
+  if (state.status !== "running" || state.endsAtMs === null) {
+    return { status: state.status, presetSeconds: state.presetSeconds, remainingSeconds: state.remainingSeconds };
   }
+
+  const remainingSeconds = Math.max(0, Math.ceil((state.endsAtMs - estimatedServerNowMs) / 1000));
+  return {
+    status: remainingSeconds === 0 ? "ended" : "running",
+    presetSeconds: state.presetSeconds,
+    remainingSeconds,
+  };
 }
 
-export function isDefaultIdleState(state: RoomTimerModel): boolean {
+export function isDefaultIdleState(state: RoomTimerDisplayModel): boolean {
   return state.status === "idle" && state.presetSeconds === defaultPresetSeconds();
 }
 
-export function isLastMinuteWarning(state: RoomTimerModel): boolean {
+export function isLastMinuteWarning(state: RoomTimerDisplayModel): boolean {
   return (
     (state.status === "running" || state.status === "paused") &&
     state.presetSeconds > LAST_MINUTE_MIN_PRESET_SECONDS &&

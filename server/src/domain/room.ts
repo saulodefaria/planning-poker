@@ -7,9 +7,21 @@ import type {
   SerializedParticipant,
   JiraTicket,
   TicketVoteHistory,
+  RoomTimer,
 } from "./types.js";
 import { VOTE_DECK, NUMERIC_VOTES } from "./types.js";
 import { AppError } from "./errors.js";
+
+export const DEFAULT_TIMER_MINUTES = 10;
+export const SECONDS_PER_MINUTE = 60;
+export const MIN_TIMER_MINUTES = 1;
+export const MAX_TIMER_MINUTES = 180;
+export const ROOM_TIMER_ENDED_RESET_DELAY_MS = 3000;
+
+function initialRoomTimer(): RoomTimer {
+  const preset = DEFAULT_TIMER_MINUTES * SECONDS_PER_MINUTE;
+  return { status: "idle", presetSeconds: preset, remainingSeconds: preset, endsAtMs: null };
+}
 
 export function createRoom(id: string, name: string): Room {
   const now = new Date().toISOString();
@@ -17,6 +29,7 @@ export function createRoom(id: string, name: string): Room {
     id,
     name,
     status: "voting",
+    timer: initialRoomTimer(),
     round: 1,
     createdAt: now,
     updatedAt: now,
@@ -179,6 +192,84 @@ export function restartRoom(room: Room): Room {
   return room;
 }
 
+export function playRoomTimer(room: Room, nowMs: number = Date.now()): Room {
+  if (room.timer.status === "running" || room.timer.status === "ended") {
+    return room;
+  }
+
+  if (room.timer.status === "idle") {
+    room.timer.remainingSeconds = room.timer.presetSeconds;
+  }
+
+  room.timer.status = "running";
+  room.timer.endsAtMs = nowMs + room.timer.remainingSeconds * 1000;
+  room.updatedAt = new Date(nowMs).toISOString();
+  return room;
+}
+
+export function pauseRoomTimer(room: Room, nowMs: number = Date.now()): Room {
+  if (room.timer.status !== "running" || room.timer.endsAtMs === null) {
+    return room;
+  }
+
+  const remaining = Math.max(0, Math.ceil((room.timer.endsAtMs - nowMs) / 1000));
+  room.timer.status = remaining === 0 ? "ended" : "paused";
+  room.timer.remainingSeconds = remaining;
+  room.timer.endsAtMs = null;
+  room.updatedAt = new Date(nowMs).toISOString();
+  return room;
+}
+
+export function cancelRoomTimer(room: Room, nowMs: number = Date.now()): Room {
+  room.timer = initialRoomTimer();
+  room.updatedAt = new Date(nowMs).toISOString();
+  return room;
+}
+
+export function addRoomTimerMinute(room: Room, nowMs: number = Date.now()): Room {
+  if (room.timer.status === "running" || room.timer.status === "ended") {
+    return room;
+  }
+
+  const maxSeconds = MAX_TIMER_MINUTES * SECONDS_PER_MINUTE;
+  if (room.timer.status === "idle") {
+    const nextPreset = Math.min(room.timer.presetSeconds + SECONDS_PER_MINUTE, maxSeconds);
+    room.timer.presetSeconds = nextPreset;
+    room.timer.remainingSeconds = nextPreset;
+  } else {
+    room.timer.remainingSeconds = Math.min(room.timer.remainingSeconds + SECONDS_PER_MINUTE, maxSeconds);
+  }
+
+  room.updatedAt = new Date(nowMs).toISOString();
+  return room;
+}
+
+export function subRoomTimerMinute(room: Room, nowMs: number = Date.now()): Room {
+  if (room.timer.status === "running" || room.timer.status === "ended") {
+    return room;
+  }
+
+  const minSeconds = MIN_TIMER_MINUTES * SECONDS_PER_MINUTE;
+  if (room.timer.status === "idle") {
+    const nextPreset = Math.max(room.timer.presetSeconds - SECONDS_PER_MINUTE, minSeconds);
+    room.timer.presetSeconds = nextPreset;
+    room.timer.remainingSeconds = nextPreset;
+  } else {
+    room.timer.remainingSeconds = Math.max(room.timer.remainingSeconds - SECONDS_PER_MINUTE, minSeconds);
+  }
+
+  room.updatedAt = new Date(nowMs).toISOString();
+  return room;
+}
+
+export function finishRoomTimer(room: Room, nowMs: number = Date.now()): Room {
+  room.timer.status = "ended";
+  room.timer.remainingSeconds = 0;
+  room.timer.endsAtMs = null;
+  room.updatedAt = new Date(nowMs).toISOString();
+  return room;
+}
+
 function syncCurrentRoundHistory(room: Room): void {
   if (room.status !== "revealed" || room.currentTicketKey === null) {
     return;
@@ -269,6 +360,12 @@ export function findNearestFibonacci(value: number): number {
 
 export function serializeRoom(room: Room): SerializedRoom {
   const isVoting = room.status === "voting";
+  const serverNowMs = Date.now();
+  const remainingSeconds =
+    room.timer.status === "running" && room.timer.endsAtMs !== null
+      ? Math.max(0, Math.ceil((room.timer.endsAtMs - serverNowMs) / 1000))
+      : room.timer.remainingSeconds;
+  const timerStatus = room.timer.status === "running" && remainingSeconds === 0 ? "ended" : room.timer.status;
 
   const participants: SerializedParticipant[] = room.participants.map((p) => ({
     id: p.id,
@@ -281,6 +378,13 @@ export function serializeRoom(room: Room): SerializedRoom {
     id: room.id,
     name: room.name,
     status: room.status,
+    timer: {
+      status: timerStatus,
+      presetSeconds: room.timer.presetSeconds,
+      remainingSeconds,
+      endsAtMs: timerStatus === "running" ? room.timer.endsAtMs : null,
+    },
+    serverNowMs,
     round: room.round,
     participants,
     stats: isVoting ? null : calculateStats(room),

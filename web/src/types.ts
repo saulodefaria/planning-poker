@@ -3,6 +3,15 @@ export type VoteValue = (typeof VOTE_DECK)[number];
 
 export type RoomStatus = "voting" | "revealed";
 
+export type RoomTimerStatus = "idle" | "running" | "paused" | "ended";
+
+export interface RoomTimerState {
+  status: RoomTimerStatus;
+  presetSeconds: number;
+  remainingSeconds: number;
+  endsAtMs: number | null;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -39,6 +48,8 @@ export interface RoomState {
   id: string;
   name: string;
   status: RoomStatus;
+  timer: RoomTimerState;
+  serverNowMs: number;
   round: number;
   participants: Participant[];
   stats: RoomStats | null;

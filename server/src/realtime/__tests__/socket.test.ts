@@ -397,4 +397,60 @@ describe("Socket.IO handlers", () => {
     expect(aliceResult).toBe("timeout");
     expect(carolResult).toBe("timeout");
   });
+
+  it("room timer actions are broadcast to every participant", async () => {
+    const { roomId } = await service.create(ROOM_NAME);
+
+    const client1 = createClient();
+    const client2 = createClient();
+    await Promise.all([waitForConnect(client1), waitForConnect(client2)]);
+
+    await new Promise<any>((resolve) => {
+      client1.emit("room:join", { roomId, name: "Alice" }, resolve);
+    });
+    await new Promise<any>((resolve) => {
+      client2.emit("room:join", { roomId, name: "Bob" }, resolve);
+    });
+
+    const runningStatePromise = Promise.all([
+      new Promise<any>((resolve) => {
+        client1.on("room:state", (state) => {
+          if (state.timer?.status === "running") resolve(state);
+        });
+      }),
+      new Promise<any>((resolve) => {
+        client2.on("room:state", (state) => {
+          if (state.timer?.status === "running") resolve(state);
+        });
+      }),
+    ]);
+
+    client1.emit("room-timer:play", { roomId });
+    const [client1Running, client2Running] = await runningStatePromise;
+    expect(client1Running.timer.status).toBe("running");
+    expect(client2Running.timer.status).toBe("running");
+    expect(client1Running.timer.endsAtMs).toBeTypeOf("number");
+
+    client1.removeAllListeners("room:state");
+    client2.removeAllListeners("room:state");
+
+    const pausedStatePromise = Promise.all([
+      new Promise<any>((resolve) => {
+        client1.on("room:state", (state) => {
+          if (state.timer?.status === "paused") resolve(state);
+        });
+      }),
+      new Promise<any>((resolve) => {
+        client2.on("room:state", (state) => {
+          if (state.timer?.status === "paused") resolve(state);
+        });
+      }),
+    ]);
+
+    client2.emit("room-timer:pause", { roomId });
+    const [client1Paused, client2Paused] = await pausedStatePromise;
+    expect(client1Paused.timer.status).toBe("paused");
+    expect(client2Paused.timer.status).toBe("paused");
+    expect(client1Paused.timer.endsAtMs).toBeNull();
+  });
 });

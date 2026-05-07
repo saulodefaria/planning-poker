@@ -1,41 +1,32 @@
-import { useEffect, useReducer, useCallback } from "react";
-import { initialRoomTimer, reduceRoomTimer } from "../services/room-timer-state";
+import { useEffect, useMemo, useState } from "react";
+import type { RoomTimerModel } from "../services/room-timer-state";
+import { getDisplayTimerState } from "../services/room-timer-state";
 
-/** Delay before auto-reset after countdown ends; exported for tests to stay in sync. */
-export const ROOM_TIMER_ENDED_RESET_DELAY_MS = 3000;
+interface UseRoomTimerParams {
+  state: RoomTimerModel;
+  serverNowMs: number;
+}
 
-export function useRoomTimer() {
-  const [state, dispatch] = useReducer(reduceRoomTimer, null, () => initialRoomTimer());
+export function useRoomTimer({ state, serverNowMs }: UseRoomTimerParams) {
+  const [serverOffsetMs, setServerOffsetMs] = useState(() => serverNowMs - Date.now());
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    setServerOffsetMs(serverNowMs - Date.now());
+    setNowMs(Date.now());
+  }, [serverNowMs]);
 
   useEffect(() => {
     if (state.status !== "running") {
       return;
     }
 
-    const id = window.setInterval(() => {
-      dispatch({ type: "TICK" });
-    }, 1000);
-
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, [state.status]);
+  }, [state.status, state.endsAtMs]);
 
-  useEffect(() => {
-    if (state.status !== "ended") {
-      return;
-    }
-
-    const id = window.setTimeout(() => {
-      dispatch({ type: "RESET_TO_DEFAULT" });
-    }, ROOM_TIMER_ENDED_RESET_DELAY_MS);
-
-    return () => window.clearTimeout(id);
-  }, [state.status]);
-
-  const play = useCallback(() => dispatch({ type: "PLAY" }), []);
-  const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
-  const cancel = useCallback(() => dispatch({ type: "CANCEL" }), []);
-  const addMinute = useCallback(() => dispatch({ type: "ADD_MINUTE" }), []);
-  const subMinute = useCallback(() => dispatch({ type: "SUB_MINUTE" }), []);
-
-  return { state, play, pause, cancel, addMinute, subMinute };
+  return useMemo(() => {
+    const estimatedServerNowMs = nowMs + serverOffsetMs;
+    return getDisplayTimerState(state, estimatedServerNowMs);
+  }, [nowMs, serverOffsetMs, state]);
 }

@@ -1,5 +1,6 @@
 import { formatTimerMmSs, isDefaultIdleState, isLastMinuteWarning } from "../services/room-timer-state";
 import { useRoomTimer } from "../hooks/useRoomTimer";
+import type { RoomTimerState } from "../types";
 
 function PlayIcon({ className }: { className?: string }) {
   return (
@@ -25,8 +26,18 @@ function StopIcon({ className }: { className?: string }) {
   );
 }
 
-export function RoomTimer() {
-  const { state, play, pause, cancel, addMinute, subMinute } = useRoomTimer();
+interface RoomTimerProps {
+  timer: RoomTimerState;
+  serverNowMs: number;
+  onPlay: () => void;
+  onPause: () => void;
+  onCancel: () => void;
+  onAddMinute: () => void;
+  onSubMinute: () => void;
+}
+
+export function RoomTimer({ timer, serverNowMs, onPlay, onPause, onCancel, onAddMinute, onSubMinute }: RoomTimerProps) {
+  const state = useRoomTimer({ state: timer, serverNowMs });
 
   const displaySeconds = state.status === "idle" ? state.presetSeconds : state.remainingSeconds;
   const isRunning = state.status === "running";
@@ -51,7 +62,7 @@ export function RoomTimer() {
         <button
           type="button"
           disabled={!canAdjustMinutes}
-          onClick={subMinute}
+          onClick={onSubMinute}
           className="flex size-8 items-center justify-center rounded-xl text-lg font-semibold text-on-surface-variant transition-colors hover:bg-surface-container/80 hover:text-on-surface disabled:pointer-events-none disabled:opacity-35 md:size-9"
           aria-label="Decrease timer by one minute">
           −
@@ -64,7 +75,7 @@ export function RoomTimer() {
         <button
           type="button"
           disabled={!canAdjustMinutes}
-          onClick={addMinute}
+          onClick={onAddMinute}
           className="flex size-8 items-center justify-center rounded-xl text-lg font-semibold text-on-surface-variant transition-colors hover:bg-surface-container/80 hover:text-on-surface disabled:pointer-events-none disabled:opacity-35 md:size-9"
           aria-label="Increase timer by one minute">
           +
@@ -75,7 +86,7 @@ export function RoomTimer() {
         <button
           type="button"
           disabled={endedWarning}
-          onClick={() => (isRunning ? pause() : play())}
+          onClick={() => (isRunning ? onPause() : onPlay())}
           className="flex size-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-container text-on-primary shadow-[0_6px_20px_rgba(78,222,163,0.35)] transition-transform hover:scale-[1.03] active:scale-95 md:size-12"
           aria-label={playPrimaryLabel}>
           {isRunning ? <PauseIcon className="size-5 md:size-6" /> : <PlayIcon className="ml-0.5 size-5 md:size-6" />}
@@ -84,7 +95,7 @@ export function RoomTimer() {
         <div className="flex min-h-[3.25rem] flex-col items-end justify-between gap-1 py-0.5 md:min-h-[3.5rem]">
           <button
             type="button"
-            onClick={cancel}
+            onClick={onCancel}
             className={`flex size-8 shrink-0 items-center justify-center rounded-full text-on-primary transition-transform hover:scale-[1.03] active:scale-95 md:size-9 ${
               cancelEmphasized
                 ? "bg-[#ff4d6d] shadow-[0_0_16px_rgba(255,77,109,0.65)]"
